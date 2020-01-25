@@ -9,12 +9,6 @@ import random
 xReplace = lambda b,p: b[:p] + 'X' + b[p+1:]
 oReplace = lambda b,p: b[:p] + 'O' + b[p+1:]
 
-board = "\n _ _ _\n|_|_|_|\n|_|_|_|\n|_|_|_|"
-position = [9,11,13,17,19,21,25,27,29]
-availablePositions = [1,2,3,4,5,6,7,8,9]
-xPos = []
-oPos = []
-
 def oMoveRandom(board,availablePositions,oPos):
     oPlace = random.randint(1,9)
     while oPlace not in availablePositions:
@@ -35,44 +29,48 @@ def checkWin(Pos):
             temp = sorted(temp)
             if temp in winCombo:
                 return 1
-            
     return 0
-    
 
 while True:
-    print(board)
-    print("available Positions: ")
-    print(availablePositions)
-    enteredXPos = input("enter position of where to move: ")
-    try:
-        enteredXPos = int(enteredXPos)
-    except:
-        "wrong type of input"
-    
-    if enteredXPos in availablePositions:
-        xPos.append(enteredXPos)
-        availablePositions.remove(enteredXPos)
-        board = xReplace(board, position[enteredXPos-1])
-        win = checkWin(xPos)
-        if win:
-            print(board)
-            print("you won!")
-            break
-        if not availablePositions:
-            print(board)
-            print("cats game")
-            break
-        board, availablePositions, oPos = oMoveRandom(board,availablePositions,oPos)
-        win = checkWin(oPos)
-        if win:
-            print(board)
-            print("you lost :(")
-            break
-        
-    else:
-        print("invalid move")
+    board = "\n _ _ _\n|_|_|_|\n|_|_|_|\n|_|_|_|"
+    position = [9,11,13,17,19,21,25,27,29]
+    availablePositions = [1,2,3,4,5,6,7,8,9]
+    xPos = []
+    oPos = []
+    while True:
+        print(board)
+        print("available Positions: ")
+        print(availablePositions)
+        enteredXPos = input("enter position of where to move: ")
+        try:
+            enteredXPos = int(enteredXPos)
+        except:
+            "wrong type of input"
+        if enteredXPos in availablePositions:
+            xPos.append(enteredXPos)
+            availablePositions.remove(enteredXPos)
+            board = xReplace(board, position[enteredXPos-1])
+            win = checkWin(xPos)
+            if win:
+                print(board)
+                print("you won!")
+                break
+            if not availablePositions:
+                print(board)
+                print("cats game")
+                break
+            board, availablePositions, oPos = oMoveRandom(board,availablePositions,oPos)
+            win = checkWin(oPos)
+            if win:
+                print(board)
+                print("you lost :(")
+                break
+        else:
+            print("invalid move")
+    playInput = input("play again? (n to exit) ")
+    if playInput == 'n':
         break
+print("goodbye!")
 
-print("end game")
         
 
