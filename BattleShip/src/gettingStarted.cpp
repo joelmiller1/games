@@ -1,31 +1,6 @@
 #define OLC_PGE_APPLICATION
 #include "olcPixelGameEngine.h"
 
-class Example : public olc::PixelGameEngine
-{
-public:
-	Example()
-	{
-		sAppName = "Example";
-	}
-
-public:
-	bool OnUserCreate() override
-	{
-		// Called once at the start, so create things here
-		return true;
-	}
-
-	bool OnUserUpdate(float fElapsedTime) override
-	{
-		// called once per frame
-		for (int x = 0; x < ScreenWidth(); x++)
-			for (int y = 0; y < ScreenHeight(); y++)
-				Draw(x, y, olc::Pixel(rand() % 255, rand() % 255, rand()% 255));	
-		return true;
-	}
-};
-
 enum GamePiece
 {
 	blank,
@@ -144,6 +119,107 @@ private:
 };
 
 
+class BattleShip : public olc::PixelGameEngine
+{
+public:
+	 BattleShip()
+	 {
+		  sAppName = "BattleShip";
+	 }
+
+	 olc::Sprite* boatSprite = nullptr;
+	 olc::Decal* boatDecal = nullptr;
+
+public:
+	 bool OnUserCreate() override
+	 {
+		  boatSprite = new olc::Sprite("../resources/submarine.png");
+		  boatDecal = new olc::Decal(boatSprite);
+		  return true;
+	 }
+
+	 void DrawGrid()
+	 {
+		  // Erase previous frame
+		  Clear(olc::BLUE);
+		  int w = ScreenWidth();
+		  int h = ScreenHeight();
+		  int iw = w / 10;
+		  int ih = h / 20;
+
+		  // Draw grid
+		  for (auto i = 1; i < 20; ++i)
+		  {
+				auto p = olc::WHITE;
+				if (i == 10)
+					 p = olc::DARK_RED;
+				DrawLine(i * iw, 0, i * iw, h, p);
+				DrawLine(0, i * ih, w, i * ih, p);
+		  }
+	 }
+
+	 void KeyPressHandler()
+	 {
+		  static olc::vi2d pos(0,150);
+		  
+		  if (GetKey(olc::Key::RIGHT).bPressed)
+		  {
+				pos.x += 15;
+				std::cout << pos << "\n";
+		  }
+		  if (GetKey(olc::Key::LEFT).bPressed)
+		  {
+				pos.x += -15;
+				std::cout << pos << "\n";
+		  }
+		  if (GetKey(olc::Key::UP).bPressed)
+		  {
+				pos.y += -15;
+				std::cout << pos << "\n";
+		  }
+		  if (GetKey(olc::Key::DOWN).bPressed)
+		  {
+				pos.y += 15;
+				std::cout << pos << "\n";
+		  }
+		  static bool drawRotated = false;
+		  if (GetKey(olc::Key::R).bPressed)
+				drawRotated = !drawRotated;
+
+
+		  if (drawRotated)
+		  {
+				olc::vi2d center(float(boatSprite->width) / 2.0f, float(boatSprite->height / 2.0f));
+				olc::vi2d rotPos( pos.x + 15, pos.y + 7 );
+				DrawRotatedDecal(rotPos, boatDecal, 90 * 3.14159 / 180, center);
+		  }
+				
+		  else
+				DrawDecal(pos, boatDecal);
+	 }
+
+	 bool OnUserUpdate(float fElapsedTime) override
+	 {
+		  Clear(olc::VERY_DARK_BLUE);
+		  olc::vf2d mouse = { float(GetMouseX()), float(GetMouseY()) };
+
+		  DrawGrid();
+
+		  KeyPressHandler();
+
+		  //SetPixelMode(olc::Pixel::ALPHA);
+		  //DrawSprite(mouse, test);
+		  //SetPixelMode(olc::Pixel::NORMAL);
+
+
+		  return true;
+	 }
+
+	 
+
+
+};
+
 //int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 int main()
 {
@@ -161,6 +237,9 @@ int main()
 
 	gb.PrintBoard();
 
+	BattleShip bs;
+	if (bs.Construct(150, 300, 2, 2))
+		 bs.Start();
 
 	return 0;
 }
