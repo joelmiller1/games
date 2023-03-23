@@ -168,12 +168,6 @@ public:
       sAppName = "BattleShip";
    }
 
-   //std::unique_ptr<olc::Sprite> boatSprite = nullptr;
-   //std::unique_ptr<olc::Decal> boatDecal = nullptr;
-
-   //std::unique_ptr<olc::Sprite> subSprite = nullptr;
-   //std::unique_ptr<olc::Decal> subDecal = nullptr;
-
    std::vector<Ship> playerPieces;
 
 public:
