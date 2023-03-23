@@ -207,25 +207,17 @@ public:
       static olc::vi2d pos(0,150);
         
       if (GetKey(olc::Key::RIGHT).bPressed)
-      {
          pos.x += 15;
-         std::cout << pos << "\n";
-      }
+
       if (GetKey(olc::Key::LEFT).bPressed)
-      {
          pos.x += -15;
-         std::cout << pos << "\n";
-      }
+
       if (GetKey(olc::Key::UP).bPressed)
-      {
          pos.y += -15;
-         std::cout << pos << "\n";
-      }
+
       if (GetKey(olc::Key::DOWN).bPressed)
-      {
          pos.y += 15;
-         std::cout << pos << "\n";
-      }
+
       if (GetKey(olc::Key::ENTER).bPressed)
       {
          ship.isPositioned = true;
