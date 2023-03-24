@@ -2,15 +2,19 @@
 #include "olcPixelGameEngine.h"
 
 #define ROT_IN_RADS 1.5707963267948f
+#define PIXEL_WIDTH 15
+
 
 enum GamePiece
 {
    blank,
-   hit,
+   bomb,
    boat,
    submarine,
    destroyer,
-   carrier
+   carrier,
+   miss,
+   hit
 };
 
 static char GetGamePieceChar(GamePiece p)
@@ -34,7 +38,6 @@ static char GetGamePieceChar(GamePiece p)
    }
 }
 
-//enum Orientation { upDown = 0, leftRight = 1};
 enum Heading {North = 0, East = 1};
 enum Player {me = 0, enemy = 1};
 
@@ -49,40 +52,40 @@ public:
             board[i][j] = GamePiece::blank;
    }
 
-   bool IsWithinBounds(GamePiece p, Heading head, int x_loc, int y_loc)
+   bool IsWithinBounds(GamePiece p, Heading head, olc::vi2d loc)
    {
-      if (x_loc >= width || y_loc >= height || x_loc < 0 || y_loc < 0)
+      if (loc.x >= width || loc.y >= height || loc.x < 0 || loc.y < 0)
          return false;
 
-      if (head == Heading::East && (x_loc + (int)p - 1) >= width)
+      if (head == Heading::East && (loc.x + (int)p - 1) >= width)
          return false;
 
-      if (head == Heading::North && (y_loc + (int)p - 1) >= height)
+      if (head == Heading::North && (loc.y + (int)p - 1) >= height)
          return false;
 
       return true;
    }
 
-   bool IsValidLocation(GamePiece p, Heading head, int startingX_loc, int startingY_loc)
+   bool IsValidLocation(GamePiece p, Heading head, olc::vi2d loc)
    {
-      if (!IsWithinBounds(p, head, startingX_loc, startingY_loc))
+      if (!IsWithinBounds(p, head, loc))
          return false;
 
       for (int i = 0; i < p; ++i)
       {
-         if (board[startingY_loc][startingX_loc] != GamePiece::blank)
+         if (board[loc.y][loc.x] != GamePiece::blank)
             return false;
          if (head == Heading::North)
-            startingY_loc++;
+            loc.y++;
          else
-            startingX_loc++;
+            loc.x++;
       }
       return true;
    }
 
    bool PlacePiece(GamePiece p, Heading head, olc::vi2d ind)
    {
-      if (!IsValidLocation(p, head, ind.x, ind.y))
+      if (!IsValidLocation(p, head, ind))
          return false;
 
       for (int i = 0; i < p; ++i)
@@ -212,18 +215,23 @@ public:
        static bool drawRotated = false;
 
        if (GetKey(olc::Key::RIGHT).bPressed)
-           pos.x += 1;
+          if (gameboard.IsWithinBounds(ship.piece, ship.heading, {pos.x + 1, pos.y}))
+            pos.x += 1;
 
+           
        if (GetKey(olc::Key::LEFT).bPressed)
-           pos.x += -1;
+          if (gameboard.IsWithinBounds(ship.piece, ship.heading, { pos.x - 1, pos.y }))
+            pos.x += -1;
 
        if (GetKey(olc::Key::UP).bPressed)
-           pos.y += -1;
+          if (gameboard.IsWithinBounds(ship.piece, ship.heading, { pos.x, pos.y - 1}))
+            pos.y += -1;
 
        if (GetKey(olc::Key::DOWN).bPressed)
-           pos.y += 1;
+          if (gameboard.IsWithinBounds(ship.piece, ship.heading, { pos.x, pos.y + 1 }))
+            pos.y += 1;
 
-       if (GetKey(olc::Key::ENTER).bPressed && gameboard.IsValidLocation(ship.piece, ship.heading, pos.x, pos.y))
+       if (GetKey(olc::Key::ENTER).bPressed && gameboard.IsValidLocation(ship.piece, ship.heading, pos))
        {
            gameboard.PlacePiece(ship.piece, ship.heading, pos);
            ship.isPositioned = true;
@@ -244,45 +252,50 @@ public:
     {
         olc::vi2d offset;
         if (piece.IsRotated())
-            offset = { ind.x * 15 + piece.center.y, ind.y * 15 + piece.center.x };
+            offset = { ind.x * PIXEL_WIDTH + piece.center.y, ind.y * PIXEL_WIDTH + piece.center.x + ScreenHeight() / 2 };
         else
-            offset = { ind.x * 15, ind.y * 15 };
+            offset = { ind.x * PIXEL_WIDTH, ind.y * PIXEL_WIDTH + ScreenHeight() / 2 };
         return offset;
+    }
+
+    void DrawGamePieces()
+    {
+       Clear(olc::VERY_DARK_BLUE);
+       for (auto& piece : playerPieces)
+       {
+          if (!piece.isPositioned)
+             continue;
+
+          auto loc = IndexToPixelLoc(piece.pos, piece);
+          if (piece.IsRotated())
+             DrawRotatedDecal(loc, piece.decal.get(), ROT_IN_RADS, piece.center);
+          else
+             DrawDecal(loc, piece.decal.get());
+       }
+
+       static int pieceIndex = 0;
+
+       if (pieceIndex < playerPieces.size())
+       {
+          auto [pos, drawRotated] = KeyPressHandler(playerPieces[pieceIndex], pieceIndex);
+          if (pieceIndex < playerPieces.size())
+          {
+             playerPieces[pieceIndex].pos = pos;
+             auto loc = IndexToPixelLoc(playerPieces[pieceIndex].pos, playerPieces[pieceIndex]);
+             if (drawRotated)
+                DrawRotatedDecal(loc, playerPieces[pieceIndex].decal.get(), ROT_IN_RADS, playerPieces[pieceIndex].center);
+             else
+                DrawDecal(loc, playerPieces[pieceIndex].decal.get());
+          }
+       }
+       
+       if (pieceIndex >= playerPieces.size())
+
     }
 
    bool OnUserUpdate(float fElapsedTime) override
    {
-      Clear(olc::VERY_DARK_BLUE);
-      //olc::vf2d mouse = { float(GetMouseX()), float(GetMouseY()) };
-
-      for (auto& piece : playerPieces)
-      {
-         if (!piece.isPositioned)
-            continue;
-
-         auto loc = IndexToPixelLoc(piece.pos, piece);
-         if (piece.IsRotated())
-            DrawRotatedDecal(loc, piece.decal.get(), ROT_IN_RADS, piece.center);
-         else
-            DrawDecal(loc, piece.decal.get());
-      }
-
-      static int pieceIndex = 0;
-
-      if (pieceIndex < playerPieces.size())
-      {
-         auto [pos, drawRotated] = KeyPressHandler(playerPieces[pieceIndex], pieceIndex);
-         if (pieceIndex < playerPieces.size())
-         {
-            playerPieces[pieceIndex].pos = pos;
-            auto loc = IndexToPixelLoc(playerPieces[pieceIndex].pos, playerPieces[pieceIndex]);
-            if (drawRotated)
-               DrawRotatedDecal(loc, playerPieces[pieceIndex].decal.get(), ROT_IN_RADS, playerPieces[pieceIndex].center);
-            else
-               DrawDecal(loc, playerPieces[pieceIndex].decal.get());
-         }
-      }
-
+      DrawGamePieces();
       DrawGrid();
 
       return true;
@@ -293,16 +306,11 @@ public:
 //int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 int main()
 {
-   //GameBoard gb;
-   //gb.PlacePiece(GamePiece::carrier, Heading::North, { 9, 0 });
-   //gb.PlacePiece(GamePiece::boat, Heading::East, { 0, 0 });
-   //gb.PlacePiece(GamePiece::destroyer, Heading::North, { 2, 0 });
-   //gb.PlacePiece(GamePiece::submarine, Heading::East, {2, 3});
-   //gb.PrintBoard();
-
    BattleShip bs;
    if (bs.Construct(150, 300, 2, 2))
        bs.Start();
+
+   bs.gameboard.PrintBoard();
 
    return 0;
 }
