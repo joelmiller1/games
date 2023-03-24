@@ -36,6 +36,7 @@ static char GetGamePieceChar(GamePiece p)
 
 //enum Orientation { upDown = 0, leftRight = 1};
 enum Heading {North = 0, East = 1};
+enum Player {me = 0, enemy = 1};
 
 class GameBoard
 {
@@ -48,7 +49,6 @@ public:
             board[i][j] = GamePiece::blank;
    }
 
-private:
    bool IsWithinBounds(GamePiece p, Heading head, int x_loc, int y_loc)
    {
       if (x_loc >= width || y_loc >= height || x_loc < 0 || y_loc < 0)
@@ -80,20 +80,19 @@ private:
       return true;
    }
 
-public:
-   bool PlacePiece(GamePiece p, Heading head, int x_loc, int y_loc)
+   bool PlacePiece(GamePiece p, Heading head, olc::vi2d ind)
    {
-      if (!IsValidLocation(p, head, x_loc, y_loc))
+      if (!IsValidLocation(p, head, ind.x, ind.y))
          return false;
 
       for (int i = 0; i < p; ++i)
       {
-         board[y_loc][x_loc] = p;
+         board[ind.y][ind.x] = p;
 
          if (head == Heading::North)
-            y_loc++;
+            ind.y++;
          else
-            x_loc++;
+            ind.x++;
       }
       return true;
    }
@@ -139,7 +138,7 @@ public:
       return sunk;
    }
 
-   bool IsRotated()
+   bool IsRotated() const
    {
       if (this->heading == Heading::North)
          return false;
@@ -150,7 +149,7 @@ public:
    GamePiece piece;
    bool isPositioned = false;
    std::array<bool, 2> isHitAtIndex = { false };
-   olc::vi2d pos{ 0, 150 };
+   olc::vi2d pos{ 0, 0 };
    Heading heading = Heading::North;
 
    std::unique_ptr<olc::Sprite> sprite = nullptr;
@@ -169,15 +168,20 @@ public:
    }
 
    std::vector<Ship> playerPieces;
+   GameBoard gameboard;
 
 public:
    bool OnUserCreate() override
    {
    Ship boat(GamePiece::boat, "../resources/boat.png");
-   Ship sub(GamePiece::boat, "../resources/submarine.png");
+   Ship sub(GamePiece::submarine, "../resources/submarine.png");
+   Ship destroyer(GamePiece::destroyer, "../resources/destroyer.png");
+   Ship carrier(GamePiece::carrier, "../resources/carrier.png");
    playerPieces.push_back(std::move(boat));
    playerPieces.push_back(std::move(sub));
-
+   playerPieces.push_back(std::move(destroyer));
+   playerPieces.push_back(std::move(carrier));
+   
 
    return true;
    }
@@ -204,53 +208,63 @@ public:
 
    std::tuple<olc::vi2d, bool> KeyPressHandler(Ship& ship, int& index)
    {
-      static olc::vi2d pos(0,150);
-        
-      if (GetKey(olc::Key::RIGHT).bPressed)
-         pos.x += 15;
+       static olc::vi2d pos(0, 0);
+       static bool drawRotated = false;
 
-      if (GetKey(olc::Key::LEFT).bPressed)
-         pos.x += -15;
+       if (GetKey(olc::Key::RIGHT).bPressed)
+           pos.x += 1;
 
-      if (GetKey(olc::Key::UP).bPressed)
-         pos.y += -15;
+       if (GetKey(olc::Key::LEFT).bPressed)
+           pos.x += -1;
 
-      if (GetKey(olc::Key::DOWN).bPressed)
-         pos.y += 15;
+       if (GetKey(olc::Key::UP).bPressed)
+           pos.y += -1;
 
-      if (GetKey(olc::Key::ENTER).bPressed)
-      {
-         ship.isPositioned = true;
-         ++index;
-      }
-        
-      static bool drawRotated = false;
-      if (GetKey(olc::Key::R).bPressed)
-      {
-         drawRotated = !drawRotated;
-         ship.heading = (Heading)((int)drawRotated);
-      }
+       if (GetKey(olc::Key::DOWN).bPressed)
+           pos.y += 1;
 
-      return std::tuple<olc::vi2d, bool>(pos, drawRotated);
+       if (GetKey(olc::Key::ENTER).bPressed && gameboard.IsValidLocation(ship.piece, ship.heading, pos.x, pos.y))
+       {
+           gameboard.PlacePiece(ship.piece, ship.heading, pos);
+           ship.isPositioned = true;
+           ++index;
+           drawRotated = false;
+       }
+
+       if (GetKey(olc::Key::R).bPressed)
+       {
+           drawRotated = !drawRotated;
+           ship.heading = (Heading)((int)drawRotated);
+       }
+
+       return std::tuple<olc::vi2d, bool>(pos, drawRotated);
    }
+
+    olc::vi2d IndexToPixelLoc(const olc::vi2d ind, const Ship& piece) const
+    {
+        olc::vi2d offset;
+        if (piece.IsRotated())
+            offset = { ind.x * 15 + piece.center.y, ind.y * 15 + piece.center.x };
+        else
+            offset = { ind.x * 15, ind.y * 15 };
+        return offset;
+    }
 
    bool OnUserUpdate(float fElapsedTime) override
    {
       Clear(olc::VERY_DARK_BLUE);
-      olc::vf2d mouse = { float(GetMouseX()), float(GetMouseY()) };
+      //olc::vf2d mouse = { float(GetMouseX()), float(GetMouseY()) };
 
       for (auto& piece : playerPieces)
       {
          if (!piece.isPositioned)
             continue;
 
+         auto loc = IndexToPixelLoc(piece.pos, piece);
          if (piece.IsRotated())
-         {
-            auto rotCenter = olc::vi2d(piece.pos.x + piece.center.y, piece.pos.y + piece.center.x);
-            DrawRotatedDecal(rotCenter, piece.decal.get(), ROT_IN_RADS, piece.center);
-         }
+            DrawRotatedDecal(loc, piece.decal.get(), ROT_IN_RADS, piece.center);
          else
-            DrawDecal(piece.pos, piece.decal.get());
+            DrawDecal(loc, piece.decal.get());
       }
 
       static int pieceIndex = 0;
@@ -261,13 +275,11 @@ public:
          if (pieceIndex < playerPieces.size())
          {
             playerPieces[pieceIndex].pos = pos;
+            auto loc = IndexToPixelLoc(playerPieces[pieceIndex].pos, playerPieces[pieceIndex]);
             if (drawRotated)
-            {
-               auto rotCenter = olc::vi2d(playerPieces[pieceIndex].pos.x + playerPieces[pieceIndex].center.y, playerPieces[pieceIndex].pos.y + playerPieces[pieceIndex].center.x);
-               DrawRotatedDecal(rotCenter, playerPieces[pieceIndex].decal.get(), ROT_IN_RADS, playerPieces[pieceIndex].center);
-            }
+               DrawRotatedDecal(loc, playerPieces[pieceIndex].decal.get(), ROT_IN_RADS, playerPieces[pieceIndex].center);
             else
-               DrawDecal(pos, playerPieces[pieceIndex].decal.get());
+               DrawDecal(loc, playerPieces[pieceIndex].decal.get());
          }
       }
 
@@ -281,19 +293,12 @@ public:
 //int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 int main()
 {
-   //Example demo;
-   //if (demo.Construct(256, 240, 4, 4))
-   //	demo.Start();
-
-   GameBoard gb;
-
-
-   gb.PlacePiece(GamePiece::carrier, Heading::North, 9, 0);
-   gb.PlacePiece(GamePiece::boat, Heading::East, 0, 0);
-   gb.PlacePiece(GamePiece::destroyer, Heading::North, 2, 0);
-   gb.PlacePiece(GamePiece::submarine, Heading::East, 2, 3);
-
-   gb.PrintBoard();
+   //GameBoard gb;
+   //gb.PlacePiece(GamePiece::carrier, Heading::North, { 9, 0 });
+   //gb.PlacePiece(GamePiece::boat, Heading::East, { 0, 0 });
+   //gb.PlacePiece(GamePiece::destroyer, Heading::North, { 2, 0 });
+   //gb.PlacePiece(GamePiece::submarine, Heading::East, {2, 3});
+   //gb.PrintBoard();
 
    BattleShip bs;
    if (bs.Construct(150, 300, 2, 2))
