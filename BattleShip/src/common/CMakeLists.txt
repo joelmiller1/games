@@ -43,15 +43,12 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-# Add exe
-ADD_EXECUTABLE( ${PROJECT_NAME} ${sources} ${headers} ${common})
-target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/common/")
+# where to find our CMake modules
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+message(STATUS "CMake module path: ${CMAKE_MODULE_PATH}")
 
-# boost
-set(Boost_USE_STATIC_LIBS OFF) 
-set(Boost_USE_MULTITHREADED ON)  
-set(Boost_USE_STATIC_RUNTIME OFF) 
-target_include_directories(${PROJECT_NAME} PRIVATE "C:/repos/libs/boost_1_80_0")
+include(Installing)
+
 
 
 

@@ -38,7 +38,8 @@ FILE( GLOB sources ${CMAKE_SOURCE_DIR}/*.cpp )
 FILE( GLOB headers ${CMAKE_SOURCE_DIR}/*.h )
 
 # Add exe
-ADD_EXECUTABLE( ${PROJECT_NAME} WIN32 ${sources} ${headers} ${Common} )
+#ADD_EXECUTABLE( ${PROJECT_NAME} WIN32 ${sources} ${headers} ${Common} )
+ADD_EXECUTABLE( ${PROJECT_NAME} ${sources} ${headers} ${Common} )
 target_include_directories(${PROJECT_NAME} PRIVATE "C:/repos/libs/asio/include")
 
 #add_subdirectory( ${CMAKE_SOURCE_DIR}/server )

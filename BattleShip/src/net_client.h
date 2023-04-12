@@ -81,11 +81,11 @@ namespace olc
 				try
 				{
 					// Resolve hostname/ip-address into tangiable physical address
-					boost::asio::ip::tcp::resolver resolver(m_context);
-					boost::asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(host, std::to_string(port));
+					asio::ip::tcp::resolver resolver(m_context);
+					asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(host, std::to_string(port));
 
 					// Create connection
-					m_connection = std::make_unique<connection<T>>(connection<T>::owner::client, m_context, boost::asio::ip::tcp::socket(m_context), m_qMessagesIn);
+					m_connection = std::make_unique<connection<T>>(connection<T>::owner::client, m_context, asio::ip::tcp::socket(m_context), m_qMessagesIn);
 					
 					// Tell the connection object to connect to server
 					m_connection->ConnectToServer(endpoints);
@@ -146,7 +146,7 @@ namespace olc
 
 		protected:
 			// asio context handles the data transfer...
-			boost::asio::io_context m_context;
+			asio::io_context m_context;
 			// ...but needs a thread of its own to execute its work commands
 			std::thread thrContext;
 			// The client has a single instance of a "connection" object, which handles data transfer
