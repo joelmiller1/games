@@ -80,7 +80,7 @@ namespace olc
 		public:
 			// Constructor: Specify Owner, connect to context, transfer the socket
 			//				Provide reference to incoming message queue
-			connection(owner parent, asio::io_context& asioContext, asio::ip::tcp::socket socket, tsqueue<owned_message<T>>& qIn)
+			connection(owner parent, boost::asio::io_context& asioContext, boost::asio::ip::tcp::socket socket, tsqueue<owned_message<T>>& qIn)
 				: m_asioContext(asioContext), m_socket(std::move(socket)), m_qMessagesIn(qIn)
 			{
 				m_nOwnerType = parent;
@@ -109,14 +109,14 @@ namespace olc
 				}
 			}
 
-			void ConnectToServer(const asio::ip::tcp::resolver::results_type& endpoints)
+			void ConnectToServer(const boost::asio::ip::tcp::resolver::results_type& endpoints)
 			{
 				// Only clients can connect to servers
 				if (m_nOwnerType == owner::client)
 				{
 					// Request asio attempts to connect to an endpoint
-					 asio::async_connect(m_socket, endpoints,
-						[this](std::error_code ec, asio::ip::tcp::endpoint endpoint)
+					 boost::asio::async_connect(m_socket, endpoints,
+						[this](std::error_code ec, boost::asio::ip::tcp::endpoint endpoint)
 						{
 							if (!ec)
 							{
@@ -130,7 +130,7 @@ namespace olc
 			void Disconnect()
 			{
 				if (IsConnected())
-					 asio::post(m_asioContext, [this]() { m_socket.close(); });
+					 boost::asio::post(m_asioContext, [this]() { m_socket.close(); });
 			}
 
 			bool IsConnected() const
@@ -149,7 +149,7 @@ namespace olc
 			// the target, for a client, the target is the server and vice versa
 			void Send(const message<T>& msg)
 			{
-				 asio::post(m_asioContext,
+				 boost::asio::post(m_asioContext,
 					[this, msg]()
 					{
 						// If the queue has a message in it, then we must 
@@ -175,7 +175,7 @@ namespace olc
 				// If this function is called, we know the outgoing message queue must have 
 				// at least one message to send. So allocate a transmission buffer to hold
 				// the message, and issue the work - asio, send these bytes
-				 asio::async_write(m_socket, asio::buffer(&m_qMessagesOut.front().header, sizeof(message_header<T>)),
+				 boost::asio::async_write(m_socket, boost::asio::buffer(&m_qMessagesOut.front().header, sizeof(message_header<T>)),
 					[this](std::error_code ec, std::size_t length)
 					{
 						// asio has now sent the bytes - if there was a problem
@@ -221,7 +221,7 @@ namespace olc
 				// If this function is called, a header has just been sent, and that header
 				// indicated a body existed for this message. Fill a transmission buffer
 				// with the body data, and send it!
-				 asio::async_write(m_socket, asio::buffer(m_qMessagesOut.front().body.data(), m_qMessagesOut.front().body.size()),
+				 boost::asio::async_write(m_socket, boost::asio::buffer(m_qMessagesOut.front().body.data(), m_qMessagesOut.front().body.size()),
 					[this](std::error_code ec, std::size_t length)
 					{
 						if (!ec)
@@ -255,7 +255,7 @@ namespace olc
 				// we will construct the message in a "temporary" message object as it's 
 				// convenient to work with.
 				
-				 asio::async_read(m_socket, asio::buffer(&m_msgTemporaryIn.header, sizeof(message_header<T>)),
+				 boost::asio::async_read(m_socket, boost::asio::buffer(&m_msgTemporaryIn.header, sizeof(message_header<T>)),
 					[this](std::error_code ec, std::size_t length)
 					{	
 						std::cout << "msg id: " << m_msgTemporaryIn.header.id << " size: " << m_msgTemporaryIn.header.size << "\n";
@@ -293,7 +293,7 @@ namespace olc
 				// If this function is called, a header has already been read, and that header
 				// request we read a body, The space for that body has already been allocated
 				// in the temporary message object, so just wait for the bytes to arrive...
-				 asio::async_read(m_socket, asio::buffer(m_msgTemporaryIn.body.data(), m_msgTemporaryIn.body.size()),
+				 boost::asio::async_read(m_socket, boost::asio::buffer(m_msgTemporaryIn.body.data(), m_msgTemporaryIn.body.size()),
 					[this](std::error_code ec, std::size_t length)
 					{						
 						if (!ec)
@@ -329,10 +329,10 @@ namespace olc
 
 		protected:
 			// Each connection has a unique socket to a remote 
-			asio::ip::tcp::socket m_socket;
+			boost::asio::ip::tcp::socket m_socket;
 
 			// This context is shared with the whole asio instance
-			asio::io_context& m_asioContext;
+			boost::asio::io_context& m_asioContext;
 
 			// This queue holds all messages to be sent to the remote side
 			// of this connection

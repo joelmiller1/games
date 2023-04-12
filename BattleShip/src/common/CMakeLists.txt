@@ -11,11 +11,37 @@ SET( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${warnings}" )
 MESSAGE( STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}" )
 MESSAGE( STATUS "CMAKE_C_FLAGS  : ${CMAKE_C_FLAGS}" )
 
+if (NOT CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    MESSAGE(STATUS "This project has a top-level one called [${CMAKE_PROJECT_NAME}]")
+else()
+    MESSAGE(STATUS "This project is a top-level one")
+endif()
 
-#These are the files that will appear in the output project (ie, in MSVC, this will be in the vcxproj)
-#All cpp files that ought to be compiled in this project must be included here
-FILE( GLOB headers ${CMAKE_SOURCE_DIR}/common/*.h )
-Message( STATUS "HEADERS: ${headers}" )  
+ADD_LIBRARY(${PROJECT_NAME} STATIC)
+
+set(public_headers
+    net_client.h
+    net_common.h
+    net_connection.h
+    net_message.h
+    net_server.h
+    net_tsqueue.h
+    olc_net.h
+    olcPixelGameEngine.h
+)
+
+#target_sources(${PROJECT_NAME} PRIVATE ${public_headers} )
+
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+        # where the library itself will look for its internal headers
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    PUBLIC
+        # where top-level project will look for the library's public headers
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        # where external projects will look for the library's public headers
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
 
 # Add exe
 ADD_EXECUTABLE( ${PROJECT_NAME} ${sources} ${headers} ${common})

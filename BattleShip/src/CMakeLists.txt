@@ -1,7 +1,7 @@
 # OpenCV Test Project
 INCLUDE( CMakePackageConfigHelpers )
 cmake_minimum_required(VERSION 3.3.0 FATAL_ERROR)
-PROJECT( "GettingStarted" CXX )
+PROJECT( "BattleShip" CXX )
 set (CMAKE_CXX_STANDARD 20)
 
 
@@ -26,17 +26,19 @@ set(CMAKE_SUPPRESS_REGENERATION true)
 #		common/net_server.h
 #		common/net_tsqueue.h
 #		common/olc_net.h
+#		common/olcPixelGameEngine.h
 #		)
 #set_property( TARGET Common PROPERTY FOLDER "common/")
 #
 #target_include_directories( common INTERFACE ${CMAKE_SOURCE_DIR}/common/ )
+#target_include_directories( common INTERFACE "C:/repos/libs/asio/include")
 
 
 FILE( GLOB sources ${CMAKE_SOURCE_DIR}/*.cpp )
 FILE( GLOB headers ${CMAKE_SOURCE_DIR}/*.h )
 
 # Add exe
-ADD_EXECUTABLE( ${PROJECT_NAME} WIN32 ${sources} ${headers} )
+ADD_EXECUTABLE( ${PROJECT_NAME} WIN32 ${sources} ${headers} ${Common} )
 target_include_directories(${PROJECT_NAME} PRIVATE "C:/repos/libs/asio/include")
 
 #add_subdirectory( ${CMAKE_SOURCE_DIR}/server )

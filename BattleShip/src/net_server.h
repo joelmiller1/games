@@ -71,7 +71,7 @@ namespace olc
 		public:
 			// Create a server, ready to listen on specified port
 			server_interface(uint16_t port)
-				: m_asioAcceptor(m_asioContext, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port))
+				: m_asioAcceptor(m_asioContext, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
 			{
 
 			}
@@ -128,7 +128,7 @@ namespace olc
 				// is the purpose of an "acceptor" object. It will provide a unique socket
 				// for each incoming connection attempt
 				m_asioAcceptor.async_accept(
-					[this](std::error_code ec, asio::ip::tcp::socket socket)
+					[this](std::error_code ec, boost::asio::ip::tcp::socket socket)
 					{
 						// Triggered by incoming connection request
 						if (!ec)
@@ -285,11 +285,11 @@ namespace olc
 			std::deque<std::shared_ptr<connection<T>>> m_deqConnections;
 
 			// Order of declaration is important - it is also the order of initialisation
-			asio::io_context m_asioContext;
+			boost::asio::io_context m_asioContext;
 			std::thread m_threadContext;
 
 			// These things need an asio context
-			asio::ip::tcp::acceptor m_asioAcceptor; // Handles new incoming connection attempts...
+			boost::asio::ip::tcp::acceptor m_asioAcceptor; // Handles new incoming connection attempts...
 
 			// Clients will be identified in the "wider system" via an ID
 			uint32_t nIDCounter = 10000;
