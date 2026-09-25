@@ -15,7 +15,6 @@ const BOT_DELAY = {
   mancala: 700,
   dotsboxes: 450,
   mastermind: 900,
-  liarsdice: 1300,
 };
 const BOT_COLORS = ['#94a3b8', '#a8a29e', '#9ca3af', '#a1a1aa', '#cbd5e1'];
 
@@ -444,7 +443,7 @@ export class Room {
     if (seatIndex === undefined) return;
     this.botPending = true;
     const version = this.version;
-    const delay = this.engine.botDelay?.(this.state) ?? BOT_DELAY[this.gameId] ?? 500;
+    const delay = BOT_DELAY[this.gameId] ?? 500;
     this.botTimer = setTimeout(() => this.runBot(seatIndex, version), delay);
     this.botTimer.unref?.();
   }

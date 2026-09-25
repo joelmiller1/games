@@ -19,11 +19,13 @@ const GAME_UI = {
   mancala: () => import('../games/mancala.js'),
   dotsboxes: () => import('../games/dotsboxes.js'),
   mastermind: () => import('../games/mastermind.js'),
-  liarsdice: () => import('../games/liarsdice.js'),
   tetris: () => import('../games/arcade.js'),
   asteroids: () => import('../games/arcade.js'),
   snake: () => import('../games/arcade.js'),
   minesweeper: () => import('../games/arcade.js'),
+  blocks: () => import('../games/arcade.js'),
+  breakout: () => import('../games/arcade.js'),
+  2048: () => import('../games/arcade.js'),
 };
 
 export function mount(el, { code }) {

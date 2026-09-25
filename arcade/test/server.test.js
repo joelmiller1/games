@@ -94,7 +94,7 @@ test('health, info, static files and SPA fallback', async () => {
   assert.equal(r.status, 200);
   r = await fetch(`http://${base}/api/info`);
   const info = await r.json();
-  assert.equal(info.games.length, 16);
+  assert.equal(info.games.length, 18);
   r = await fetch(`http://${base}/`);
   assert.equal(r.status, 200);
   assert.match(await r.text(), /<html/i);
@@ -243,24 +243,29 @@ test('seat indexes from clients are validated', async () => {
   host.close();
 });
 
-test("liar's dice online: each player only sees their own dice", async () => {
+test('mastermind online: each player sees only the code they set', async () => {
   const ana = await new Client('Ana').connect();
   const ben = await new Client('Ben').connect();
-  const { code } = await ana.request({ t: 'room.create', game: 'liarsdice', mode: 'online', seats: 2 });
+  const { code } = await ana.request({ t: 'room.create', game: 'mastermind', mode: 'online', seats: 2 });
   await ana.request({ t: 'room.join', code });
   await ben.request({ t: 'room.join', code });
   await ana.waitRoom((r) => r.seats[1].kind === 'human');
   await ana.request({ t: 'room.start' });
-  const rb = await ben.waitRoom((r) => r.phase === 'playing');
-  const ra = await ana.waitRoom((r) => r.phase === 'playing');
-  assert.equal(rb.views[1].dice[0], null);
-  assert.equal(rb.views[1].dice[1].length, 5);
-  assert.equal(ra.views[0].dice[1], null);
-  await ana.request({ t: 'room.act', action: { type: 'bid', q: 2, f: 3 } });
-  await ben.request({ t: 'room.act', action: { type: 'liar' } });
-  const after = await ana.waitRoom((r) => r.views[0].round === 2);
-  assert.equal(after.views[0].last.hands[1].length, 5, 'the reveal shows every hand');
-  assert.equal(after.views[0].dice[1], null, 'the new dice are secret again');
+  await ben.waitRoom((r) => r.phase === 'playing');
+  await ana.request({ t: 'room.act', action: { type: 'setCode', code: [1, 2, 3, 4] } });
+  await ben.request({ t: 'room.act', action: { type: 'setCode', code: [5, 5, 0, 0] } });
+  const rb = await ben.waitRoom((r) => r.views[1]?.phase === 'playing');
+  const ra = await ana.waitRoom((r) => r.views[0]?.phase === 'playing');
+  assert.deepEqual(ra.views[0].myCode, [1, 2, 3, 4]);
+  assert.deepEqual(rb.views[1].myCode, [5, 5, 0, 0]);
+  assert.equal(ra.views[0].targets, null, 'nobody sees the code they have to crack');
+  assert.equal(rb.views[1].targets, null);
+  assert.ok(!JSON.stringify(ra).includes('[5,5,0,0]'), "Ben's code never reaches Ana's browser");
+  await ana.request({ t: 'room.act', action: { type: 'guess', code: [5, 5, 0, 0] } });
+  await ben.request({ t: 'room.act', action: { type: 'guess', code: [1, 2, 3, 3] } });
+  const over = await ana.waitRoom((r) => r.phase === 'over');
+  assert.deepEqual(over.result.winners, [0]);
+  assert.deepEqual(over.views[0].targets, [[5, 5, 0, 0], [1, 2, 3, 4]], 'codes are revealed at the end');
   ana.close();
   ben.close();
 });
