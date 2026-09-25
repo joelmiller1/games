@@ -1,7 +1,7 @@
 // A game table: waiting room (seats, invite link, QR), live game, result + rematch, chat.
 import { h, toast, modal, copyText, avatar, plural, fill } from '../ui.js';
 import { gameBadge, icon } from '../icons.js';
-import { getGame, LEVELS } from '../../shared/games/meta.js';
+import { getGame, LEVELS, formatScore } from '../../shared/games/meta.js';
 import { net } from '../net.js';
 import { navigate, absoluteUrl } from '../router.js';
 import { qrSvg } from '../qr.js';
@@ -15,6 +15,15 @@ const GAME_UI = {
   battleship: () => import('../games/battleship.js'),
   yahtzee: () => import('../games/yahtzee.js'),
   pinball: () => import('../games/pinball.js'),
+  reversi: () => import('../games/reversi.js'),
+  mancala: () => import('../games/mancala.js'),
+  dotsboxes: () => import('../games/dotsboxes.js'),
+  mastermind: () => import('../games/mastermind.js'),
+  liarsdice: () => import('../games/liarsdice.js'),
+  tetris: () => import('../games/arcade.js'),
+  asteroids: () => import('../games/arcade.js'),
+  snake: () => import('../games/arcade.js'),
+  minesweeper: () => import('../games/arcade.js'),
 };
 
 export function mount(el, { code }) {
@@ -228,7 +237,11 @@ export function mount(el, { code }) {
     const winnerNames = r.winners.map((w) => room.seats[w]?.name).filter(Boolean);
     let title;
     let cls = '';
-    if (r.draw && r.winners.length <= 1) title = "It's a draw";
+    if (room.seats.length === 1) {
+      // A solo game (Yahtzee, a Mastermind puzzle): there is nobody to beat.
+      title = meta.id === 'mastermind' && iWon ? 'Code cracked!' : 'Game over';
+      if (meta.id === 'mastermind') cls = iWon ? 'win' : 'lose';
+    } else if (r.draw && (r.winners.length <= 1 || r.winners.length === room.seats.length)) title = "It's a draw";
     else if (r.draw) title = `Tie: ${winnerNames.join(' & ')}`;
     else if (isLocal() || !mine.length) title = `${winnerNames.join(' & ')} wins!`;
     else if (iWon) {
@@ -240,8 +253,11 @@ export function mount(el, { code }) {
     }
     let scores = null;
     if (r.scores && room.seats.length > 1) {
-      const order = r.scores.map((sc, i) => ({ sc, i })).sort((a, b) => b.sc - a.sc);
-      scores = h('div', { class: 'row small' }, order.map(({ sc, i }, k) => h('span', { class: 'chip' }, `${k + 1}. ${room.seats[i].name}: ${sc.toLocaleString()}`)));
+      // Best first: highest points, or lowest time (unfinished runs last).
+      const asc = r.order === 'asc';
+      const rank = (x) => (x === null || x === undefined ? Infinity : asc ? x : -x);
+      const order = r.scores.map((sc, i) => ({ sc, i })).sort((a, b) => rank(a.sc) - rank(b.sc));
+      scores = h('div', { class: 'row small' }, order.map(({ sc, i }, k) => h('span', { class: 'chip' }, `${k + 1}. ${room.seats[i].name}: ${sc === null ? 'did not finish' : formatScore(meta, sc)}`)));
     }
     const voted = room.rematch.includes(room.you.id);
     const others = room.seats.filter((s) => s.kind === 'human' && !room.rematch.includes(s.playerId) && s.playerId !== room.you.id && !String(s.playerId).startsWith('left:'));

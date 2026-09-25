@@ -5,6 +5,28 @@ import * as checkers from './checkers.js';
 import * as connect4 from './connect4.js';
 import * as battleship from './battleship.js';
 import * as tictactoe from './tictactoe.js';
-import * as pinball from './pinball.js';
+import * as reversi from './reversi.js';
+import * as mancala from './mancala.js';
+import * as dotsboxes from './dotsboxes.js';
+import * as mastermind from './mastermind.js';
+import * as liarsdice from './liarsdice.js';
+import { pinball, tetris, asteroids, snake, minesweeper } from './arcade.js';
 
-export const ENGINES = { yahtzee, chess, checkers, connect4, battleship, tictactoe, pinball };
+export const ENGINES = {
+  yahtzee,
+  chess,
+  checkers,
+  connect4,
+  battleship,
+  tictactoe,
+  reversi,
+  mancala,
+  dotsboxes,
+  mastermind,
+  liarsdice,
+  pinball,
+  tetris,
+  asteroids,
+  snake,
+  minesweeper,
+};

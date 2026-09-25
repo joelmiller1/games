@@ -112,6 +112,86 @@ const GAME_ART = {
     s('circle', { cx: 48, cy: 16, r: 5.5, fill: 'none', stroke: '#fde047', 'stroke-width': 4 }),
     s('circle', { cx: 32, cy: 32, r: 5.5, fill: 'none', stroke: '#fde047', 'stroke-width': 4 }),
   ],
+  reversi: () => {
+    const disc = (cx, cy, dark) => [
+      s('circle', { cx, cy: cy + 2, r: 11, fill: dark ? '#020617' : '#94a3b8' }),
+      s('circle', { cx, cy, r: 11, fill: dark ? '#1f2937' : '#f8fafc' }),
+      s('circle', { cx: cx - 3.5, cy: cy - 3.5, r: 3.5, fill: dark ? '#4b5563' : '#ffffff', opacity: 0.8 }),
+    ];
+    return [disc(21, 21, false), disc(43, 21, true), disc(21, 43, true), disc(43, 43, false)];
+  },
+  mancala: () => {
+    const out = [
+      s('rect', { x: 4, y: 16, width: 56, height: 32, rx: 16, fill: '#fcd34d' }),
+      s('rect', { x: 4, y: 16, width: 56, height: 32, rx: 16, fill: 'none', stroke: '#92400e', 'stroke-width': 2 }),
+    ];
+    const seeds = ['#38bdf8', '#f472b6', '#a3e635', '#ffffff', '#c084fc'];
+    [[23, 25], [33, 25], [43, 25], [23, 39], [33, 39], [43, 39]].forEach(([cx, cy], i) => {
+      out.push(s('circle', { cx, cy, r: 5, fill: '#b45309' }));
+      for (let k = 0; k < (i % 3) + 1; k++) out.push(s('circle', { cx: cx - 2 + k * 2, cy: cy - 1 + (k % 2) * 2, r: 1.6, fill: seeds[(i + k) % seeds.length] }));
+    });
+    out.push(s('ellipse', { cx: 12, cy: 32, rx: 4, ry: 10, fill: '#b45309' }), s('ellipse', { cx: 52, cy: 32, rx: 4, ry: 10, fill: '#b45309' }));
+    return out;
+  },
+  dotsboxes: () => {
+    const out = [s('rect', { x: 14, y: 14, width: 18, height: 18, fill: '#fde047', opacity: 0.85 })];
+    out.push(s('path', { d: 'M14 14h18v18H14zM32 14h18M50 14v18M14 32v18M32 50h18', stroke: '#fff', 'stroke-width': 3.5, fill: 'none', 'stroke-linecap': 'round' }));
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) out.push(s('circle', { cx: 14 + c * 18, cy: 14 + r * 18, r: 3.6, fill: '#fff' }));
+    return out;
+  },
+  mastermind: () => {
+    const out = [s('rect', { x: 6, y: 20, width: 52, height: 24, rx: 12, fill: 'rgba(0,0,0,0.25)' })];
+    ['#ef4444', '#facc15', '#22c55e', '#3b82f6'].forEach((c, i) => {
+      out.push(s('circle', { cx: 15 + i * 11, cy: 32, r: 5.2, fill: c }), s('circle', { cx: 13.5 + i * 11, cy: 30.5, r: 1.6, fill: '#fff', opacity: 0.7 }));
+    });
+    out.push(s('circle', { cx: 44, cy: 12, r: 3.2, fill: '#111827' }), s('circle', { cx: 52, cy: 12, r: 3.2, fill: '#fff' }));
+    return out;
+  },
+  liarsdice: () => [
+    s('path', { d: 'M8 14h26l-4 30H12z', fill: '#7c2d12' }),
+    s('path', { d: 'M6 12h30v5H6z', fill: '#9a3412' }),
+    s('path', { d: 'M13 20h4l-2 20h-3z', fill: '#c2410c', opacity: 0.7 }),
+    s('g', { transform: 'rotate(-10 44 42)' }, s('rect', { x: 34, y: 32, width: 20, height: 20, rx: 5, fill: '#fff' }), pip(39.5, 37.5, 2.3), pip(48.5, 46.5, 2.3), pip(44, 42, 2.3)),
+    s('g', { transform: 'rotate(14 26 50)' }, s('rect', { x: 17, y: 42, width: 16, height: 16, rx: 4, fill: '#fef3c7' }), pip(21.5, 46.5, 2), pip(28.5, 53.5, 2)),
+  ],
+  minesweeper: () => {
+    const spikes = [];
+    for (let k = 0; k < 8; k++) {
+      const a = (k * Math.PI) / 4;
+      spikes.push(`M${(26 + Math.cos(a) * 8).toFixed(1)} ${(36 + Math.sin(a) * 8).toFixed(1)}L${(26 + Math.cos(a) * 17).toFixed(1)} ${(36 + Math.sin(a) * 17).toFixed(1)}`);
+    }
+    return [
+      s('path', { d: spikes.join(''), stroke: '#0f172a', 'stroke-width': 3.5, 'stroke-linecap': 'round' }),
+      s('circle', { cx: 26, cy: 36, r: 12, fill: '#0f172a' }),
+      s('circle', { cx: 22, cy: 32, r: 3.5, fill: '#fff', opacity: 0.85 }),
+      s('path', { d: 'M46 10v30', stroke: '#e2e8f0', 'stroke-width': 3, 'stroke-linecap': 'round' }),
+      s('path', { d: 'M47 10l13 6-13 6z', fill: '#ef4444' }),
+      s('path', { d: 'M40 42h12', stroke: '#e2e8f0', 'stroke-width': 3, 'stroke-linecap': 'round' }),
+    ];
+  },
+  tetris: () => {
+    const sq = (x, y, c) => [s('rect', { x, y, width: 11, height: 11, rx: 2, fill: c }), s('rect', { x: x + 1.5, y: y + 1.5, width: 8, height: 3, rx: 1, fill: '#fff', opacity: 0.35 })];
+    return [
+      sq(20, 6, '#c084fc'), sq(8, 18, '#c084fc'), sq(20, 18, '#c084fc'), sq(32, 18, '#c084fc'),
+      sq(8, 42, '#fb923c'), sq(8, 30, '#fb923c'), sq(20, 42, '#fb923c'), sq(32, 42, '#fb923c'),
+      sq(44, 6, '#fde047'), sq(44, 18, '#fde047'), sq(44, 30, '#67e8f9'), sq(44, 42, '#67e8f9'),
+    ];
+  },
+  asteroids: () => [
+    s('path', { d: 'M8 20l9-10 13 2 8 10-4 12-13 4-11-7z', fill: 'none', stroke: '#e2e8f0', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }),
+    s('path', { d: 'M44 50l-3-6 5-5 7 2 1 6-5 4z', fill: 'none', stroke: '#e2e8f0', 'stroke-width': 2.2, 'stroke-linejoin': 'round' }),
+    s('path', { d: 'M40 36l14-6-6 14-2-6z', fill: 'none', stroke: '#a5f3fc', 'stroke-width': 2.5, 'stroke-linejoin': 'round', transform: 'rotate(-20 46 38)' }),
+    s('circle', { cx: 33, cy: 44, r: 1.8, fill: '#fde047' }),
+    s('circle', { cx: 27, cy: 49, r: 1.8, fill: '#fde047' }),
+  ],
+  snake: () => [
+    s('path', { d: 'M10 48c0-10 10-10 18-10s16 0 16-9-9-9-15-9-11-2-11-8', fill: 'none', stroke: '#14532d', 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+    s('path', { d: 'M10 48c0-10 10-10 18-10s16 0 16-9-9-9-15-9-11-2-11-8', fill: 'none', stroke: '#bef264', 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+    s('circle', { cx: 16, cy: 11, r: 1.8, fill: '#14532d' }),
+    s('circle', { cx: 48, cy: 49, r: 7, fill: '#ef4444' }),
+    s('path', { d: 'M48 42c0-3 2-5 4-6', stroke: '#65a30d', 'stroke-width': 2, fill: 'none', 'stroke-linecap': 'round' }),
+    s('circle', { cx: 45.5, cy: 46.5, r: 2, fill: '#fff', opacity: 0.6 }),
+  ],
   pinball: () => [
     s('path', { d: 'M10 50l16 6', stroke: '#fff', 'stroke-width': 6, 'stroke-linecap': 'round' }),
     s('path', { d: 'M54 50l-16 6', stroke: '#fff', 'stroke-width': 6, 'stroke-linecap': 'round' }),

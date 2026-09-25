@@ -10,6 +10,10 @@ const BUDGETS = {
   chess: { easy: 300, medium: 800, hard: 1600 },
   checkers: { easy: 300, medium: 600, hard: 1400 },
   connect4: { easy: 200, medium: 400, hard: 1000 },
+  reversi: { easy: 200, medium: 400, hard: 1500 },
+  mancala: { easy: 200, medium: 300, hard: 1000 },
+  dotsboxes: { easy: 200, medium: 300, hard: 1200 },
+  mastermind: { easy: 500, medium: 500, hard: 1500 },
 };
 
 export function budgetFor(game, level) {
