@@ -1,0 +1,14 @@
+# High scores and win/loss records (a small JSON file). k3s provisions this with its
+# built-in local-path storage class; set storageClassName if you use something else.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: arcade-data
+  labels:
+    app.kubernetes.io/name: arcade
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
