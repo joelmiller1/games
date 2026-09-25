@@ -286,6 +286,7 @@ h3 {
 }
 
 .panel {
+  min-width: 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -592,7 +593,7 @@ label.field {
 
 .home-columns {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   gap: 16px;
   margin-top: 26px;
 }
@@ -600,6 +601,19 @@ label.field {
 .table-list {
   display: grid;
   gap: 8px;
+}
+
+/* Grid children may shrink below their content (long names get ellipses instead of widening the page). */
+.table-list > *,
+.seat-list > *,
+.form-grid > *,
+.names-list > *,
+.fame > *,
+.rank-list > *,
+.waiting > *,
+.room-main > *,
+.room-side > * {
+  min-width: 0;
 }
 
 .table-row {
@@ -869,6 +883,7 @@ label.field {
   gap: 10px;
   min-width: 0;
   flex: 1;
+  overflow: hidden;
 }
 
 .room-title .game-art {
@@ -1043,6 +1058,7 @@ label.field {
   position: relative;
   display: grid;
   justify-items: center;
+  container-type: inline-size;
   padding: 12px;
   border-radius: 20px;
   background: var(--surface);
@@ -1383,6 +1399,7 @@ label.field {
 
 .ttt {
   --size: min(86vw, 60vh, 440px);
+  --size: min(100cqi, 60vh, 440px);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
@@ -1460,6 +1477,7 @@ label.field {
 
 .c4 {
   --cell: min(12vw, 8.4vh, 72px);
+  --cell: min(calc((100cqi - 4px) / 7.25), 8.4vh, 72px);
   position: relative;
   padding: calc(var(--cell) * 0.12);
   border-radius: 18px;
@@ -1571,13 +1589,12 @@ label.field {
 
 .sq-board {
   --bsize: max(260px, min(92vw, calc(100vh - 400px), 640px));
+  --bsize: max(240px, min(calc(100cqi - 14px), calc(100vh - 400px), 640px));
   --light: #eed9b6;
   --dark: #b58863;
   position: relative;
   width: var(--bsize);
   height: var(--bsize);
-  min-width: 260px;
-  min-height: 260px;
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
@@ -1894,6 +1911,7 @@ label.field {
 
 .bs-grid {
   --cell: min(8.2vw, 38px);
+  --cell: min(calc((100cqi - 16px) / 11), 38px);
   position: relative;
   display: grid;
   grid-template-columns: repeat(11, var(--cell));
@@ -1908,6 +1926,7 @@ label.field {
 
 .bs-grid.small {
   --cell: min(6vw, 26px);
+  --cell: min(calc((100cqi - 16px) / 11), 26px);
 }
 
 .bs-grid.targetable .bs-cell.open {
@@ -2098,12 +2117,13 @@ label.field {
 
 .dice {
   display: flex;
-  gap: min(3vw, 14px);
+  gap: min(2.5vw, 14px);
   justify-content: center;
 }
 
 .die {
   --d: min(15vw, 72px);
+  --d: min(calc((100cqi - 100px) / 5), 72px);
   position: relative;
   width: var(--d);
   height: var(--d);
@@ -2481,7 +2501,7 @@ kbd {
 @media (max-width: 900px) {
   .home-columns,
   .setup-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .pinball-page {
@@ -2504,6 +2524,37 @@ kbd {
 @media (max-width: 700px) {
   .room-side {
     grid-template-columns: 1fr;
+  }
+
+  .room-title .chip,
+  .room-title h1 {
+    display: none;
+  }
+
+  .room-head .btn-sm {
+    padding: 0 10px;
+  }
+
+  .status-bar {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .status-bar .status-text {
+    flex-basis: 100%;
+  }
+
+  .status-bar .actions:empty {
+    display: none;
+  }
+
+  .board-area {
+    padding: 8px 4px;
+    border-radius: 14px;
+  }
+
+  .dice-tray {
+    padding: 14px 8px 12px;
   }
 
   .net-status .label {
@@ -2533,7 +2584,7 @@ kbd {
   }
 
   .sq-board {
-    --bsize: max(260px, min(94vw, calc(100vh - 330px)));
+    --bsize: max(240px, min(calc(100cqi - 14px), calc(100vh - 330px)));
   }
 
   .player {
@@ -2541,32 +2592,53 @@ kbd {
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 520px) {
   .brand-name {
     display: none;
   }
 
   .game-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 
   .game-card {
-    min-height: 150px;
-    padding: 14px;
+    min-height: 0;
+    padding: 12px;
+    gap: 4px;
   }
 
   .game-card .game-art {
-    width: 56px;
-    height: 56px;
+    position: static;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 6px;
   }
 
   .game-card h3 {
+    margin: 0;
     font-size: 1.15rem;
   }
 
   .game-card p {
     display: none;
+  }
+
+  .game-card .chip + .chip {
+    display: none;
+  }
+
+  .hero {
+    margin-bottom: 18px;
+  }
+
+  .join-inline {
+    width: 100%;
+  }
+
+  .join-inline .input.code {
+    max-width: none;
+    flex: 1;
   }
 }
 

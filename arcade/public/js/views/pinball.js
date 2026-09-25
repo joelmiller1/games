@@ -170,7 +170,7 @@ export function mount(el, _params, query) {
           if (ev.type === 'paused') {
             overlay.hidden = false;
             fill(overlay, h('h2', 'Paused'), h('p', { class: 'muted' }, 'Press P, or tap the table, to carry on.'), h('button', { class: 'btn btn-primary', type: 'button', onClick: () => game.setPaused(false) }, 'Resume'));
-          } else if (ev.type === 'resumed' && game.rules.phase !== 'over') overlay.hidden = true;
+          } else if (ev.type === 'resumed' && game?.rules.phase !== 'over') overlay.hidden = true;
         },
       });
     }

@@ -54,8 +54,11 @@ export function create(ctx) {
             players: [me.name],
             balls: view.balls,
             onEvent: (ev) => {
-              if (ev.type === 'score') send('progress', ev.score, game.rules.player.ball);
-              if (ev.type === 'newBall') send('progress', game.rules.player.score, ev.ball);
+              // Events can fire while the game is still being constructed, before `game` is set.
+              const rules = game?.rules;
+              if (!rules) return;
+              if (ev.type === 'score') send('progress', ev.score, rules.player.ball);
+              if (ev.type === 'newBall') send('progress', rules.player.score, ev.ball);
             },
             onGameOver: (scores) => {
               finished = true;
