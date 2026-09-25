@@ -349,17 +349,19 @@ export class Hub {
     }
   }
 
+  /** Scores from games played entirely in the browser (solo / pass-and-play pinball). */
   submitScore(player, msg) {
     const meta = getGame(msg.game);
     if (!meta?.leaderboard || !meta.realtime) throw new GameError('Scores for that game are recorded automatically');
-    const score = Number(msg.score);
-    if (!Number.isInteger(score) || score < 0 || score > MAX_SCORE) throw new GameError('Invalid score');
+    const entries = Array.isArray(msg.scores) ? msg.scores.slice(0, 4) : [{ name: msg.name, score: msg.score }];
+    for (const e of entries) {
+      if (!e || !Number.isInteger(e.score) || e.score < 0 || e.score > MAX_SCORE) throw new GameError('Invalid score');
+    }
     const now = Date.now();
     if (player.lastScoreAt && now - player.lastScoreAt < 3000) throw new GameError('Too many scores');
     player.lastScoreAt = now;
-    const name = cleanName(msg.name, player.name);
-    const rank = this.store.addScore(meta.id, name, score);
-    return { rank };
+    const ranks = entries.map((e) => this.store.addScore(meta.id, cleanName(e.name, player.name), e.score, { players: entries.length }));
+    return { rank: ranks[0], ranks };
   }
 
   leaderboards() {

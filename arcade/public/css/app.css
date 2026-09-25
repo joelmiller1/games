@@ -48,6 +48,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;
@@ -2327,7 +2331,10 @@ label.field {
   aspect-ratio: 600 / 1000;
   max-width: 100vw;
   touch-action: none;
-  border-radius: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  outline: none;
 }
 
 .pinball-side {
@@ -2428,6 +2435,34 @@ kbd {
   font-family: var(--mono);
   font-size: 0.8rem;
   text-align: center;
+}
+
+.pb-room {
+  display: grid;
+  justify-items: center;
+  width: 100%;
+}
+
+.pb-room-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: min(calc(100vh - 260px), 900px);
+  min-height: 420px;
+  aspect-ratio: 600 / 1000;
+  max-width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.pb-room-stage .pinball-canvas {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+
+.pb-room-stage .pb-overlay {
+  border-radius: 14px;
 }
 
 /* ---------- responsive ---------- */
