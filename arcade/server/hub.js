@@ -1,9 +1,9 @@
 // The hub owns every WebSocket connection, player identity, the lobby and the room registry.
 import crypto from 'node:crypto';
 import { Room, humanSeat, botSeat, openSeat } from './room.js';
-import { GAMES, getGame, normalizeOptions, PLAYER_COLORS } from '../shared/games/meta.js';
+import { GAMES, getGame, normalizeOptions, scoring, scoreBoards, boardFor, PLAYER_COLORS } from '../shared/games/meta.js';
 import { GameError } from '../shared/lib/game.js';
-import { MAX_SCORE } from '../shared/games/pinball.js';
+import { MAX_SCORE } from '../shared/games/arcade.js';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
@@ -286,7 +286,8 @@ export class Hub {
 
     if (mode === 'solo') {
       if (!meta.bots && max > 1 && min > 1) throw new GameError('This game has no computer players');
-      const bots = meta.players[1] === 2 ? 1 : Math.max(0, Math.min(max - 1, Number(msg.bots) || 0));
+      // Two-player games always get one computer opponent; others choose how many (maybe none).
+      const bots = min === 2 && max === 2 ? 1 : Math.max(0, Math.min(max - 1, Number(msg.bots) || 0));
       const total = Math.max(min, 1 + bots);
       let seat = Number.isInteger(msg.seat) && msg.seat >= 0 && msg.seat < total ? msg.seat : 0;
       if (msg.seat === -1) seat = Math.floor(Math.random() * total);
@@ -337,8 +338,11 @@ export class Hub {
   recordGame(room, out) {
     const humans = room.seats.map((s, i) => ({ s, i })).filter(({ s }) => s.kind === 'human' && !s.playerId.startsWith('left:'));
     if (room.meta.leaderboard && out.scores) {
+      const board = boardFor(room.meta, room.options);
+      const { order } = scoring(room.meta);
       for (const { s, i } of humans) {
-        const rank = this.store.addScore(room.gameId, s.name, out.scores[i], { players: room.seats.length });
+        if (out.scores[i] === null || out.scores[i] === undefined) continue;
+        const rank = this.store.addScore(board, s.name, out.scores[i], { players: room.seats.length }, order);
         if (rank) room.system(`${s.name} is #${rank} on the ${room.meta.name} high score table!`);
       }
     } else if (humans.length >= 2) {
@@ -349,25 +353,29 @@ export class Hub {
     }
   }
 
-  /** Scores from games played entirely in the browser (solo / pass-and-play pinball). */
+  /** Scores from games played entirely in the browser (solo and pass-and-play). */
   submitScore(player, msg) {
     const meta = getGame(msg.game);
     if (!meta?.leaderboard || !meta.realtime) throw new GameError('Scores for that game are recorded automatically');
-    const entries = Array.isArray(msg.scores) ? msg.scores.slice(0, 4) : [{ name: msg.name, score: msg.score }];
+    const entries = Array.isArray(msg.scores) ? msg.scores.slice(0, 8) : [{ name: msg.name, score: msg.score }];
     for (const e of entries) {
       if (!e || !Number.isInteger(e.score) || e.score < 0 || e.score > MAX_SCORE) throw new GameError('Invalid score');
     }
     const now = Date.now();
     if (player.lastScoreAt && now - player.lastScoreAt < 3000) throw new GameError('Too many scores');
     player.lastScoreAt = now;
-    const ranks = entries.map((e) => this.store.addScore(meta.id, cleanName(e.name, player.name), e.score, { players: entries.length }));
-    return { rank: ranks[0], ranks };
+    const board = boardFor(meta, msg.options);
+    const { order } = scoring(meta);
+    const ranks = entries.map((e) => this.store.addScore(board, cleanName(e.name, player.name), e.score, { players: entries.length }, order));
+    return { rank: ranks[0], ranks, board };
   }
 
   leaderboards() {
     const out = {};
     for (const g of GAMES) {
-      out[g.id] = g.leaderboard ? { scores: this.store.scores(g.id, 10) } : { records: this.store.records(g.id, 10) };
+      out[g.id] = g.leaderboard
+        ? { boards: scoreBoards(g).map((b) => ({ ...b, scores: this.store.scores(b.id, 10) })) }
+        : { records: this.store.records(g.id, 10) };
     }
     return out;
   }

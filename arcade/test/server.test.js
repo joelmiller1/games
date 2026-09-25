@@ -94,7 +94,7 @@ test('health, info, static files and SPA fallback', async () => {
   assert.equal(r.status, 200);
   r = await fetch(`http://${base}/api/info`);
   const info = await r.json();
-  assert.equal(info.games.length, 7);
+  assert.equal(info.games.length, 16);
   r = await fetch(`http://${base}/`);
   assert.equal(r.status, 200);
   assert.match(await r.text(), /<html/i);
@@ -196,7 +196,8 @@ test('chess clock game against the computer and leaderboard API', async () => {
   assert.ok(room.views[1].legal.length > 0);
   const r = await fetch(`http://${base}/api/leaderboards`);
   const boards = await r.json();
-  assert.ok(boards.pinball.scores);
+  assert.ok(boards.pinball.boards[0].scores);
+  assert.equal(boards.minesweeper.boards.length, 3);
   assert.ok(boards.chess.records);
   fay.close();
 });
@@ -206,8 +207,17 @@ test('pinball score submission', async () => {
   const res = await gus.request({ t: 'score.submit', game: 'pinball', score: 123450 });
   assert.equal(res.rank, 1);
   await assert.rejects(gus.request({ t: 'score.submit', game: 'chess', score: 5 }), /recorded automatically/);
-  const boards = await (await fetch(`http://${base}/api/leaderboards`)).json();
-  assert.equal(boards.pinball.scores[0].name, 'Gus');
+  let boards = await (await fetch(`http://${base}/api/leaderboards`)).json();
+  assert.equal(boards.pinball.boards[0].scores[0].name, 'Gus');
+  // Minesweeper times: lower is better, one table per difficulty.
+  await new Promise((r) => setTimeout(r, 3100));
+  const t1 = await gus.request({ t: 'score.submit', game: 'minesweeper', options: { level: 'expert' }, scores: [{ name: 'Gus', score: 95000 }, { name: 'Hana', score: 80000 }] });
+  assert.deepEqual(t1.ranks, [1, 1]);
+  assert.equal(t1.board, 'minesweeper:expert');
+  boards = await (await fetch(`http://${base}/api/leaderboards`)).json();
+  const expert = boards.minesweeper.boards.find((b) => b.id === 'minesweeper:expert');
+  assert.deepEqual(expert.scores.map((x) => x.name), ['Hana', 'Gus']);
+  assert.equal(boards.minesweeper.boards.find((b) => b.id === 'minesweeper:beginner').scores.length, 0);
   gus.close();
 });
 
@@ -231,4 +241,41 @@ test('seat indexes from clients are validated', async () => {
   const room = await host.waitRoom((r) => r.seats[1].kind === 'bot');
   assert.equal(room.seats.length, 3);
   host.close();
+});
+
+test("liar's dice online: each player only sees their own dice", async () => {
+  const ana = await new Client('Ana').connect();
+  const ben = await new Client('Ben').connect();
+  const { code } = await ana.request({ t: 'room.create', game: 'liarsdice', mode: 'online', seats: 2 });
+  await ana.request({ t: 'room.join', code });
+  await ben.request({ t: 'room.join', code });
+  await ana.waitRoom((r) => r.seats[1].kind === 'human');
+  await ana.request({ t: 'room.start' });
+  const rb = await ben.waitRoom((r) => r.phase === 'playing');
+  const ra = await ana.waitRoom((r) => r.phase === 'playing');
+  assert.equal(rb.views[1].dice[0], null);
+  assert.equal(rb.views[1].dice[1].length, 5);
+  assert.equal(ra.views[0].dice[1], null);
+  await ana.request({ t: 'room.act', action: { type: 'bid', q: 2, f: 3 } });
+  await ben.request({ t: 'room.act', action: { type: 'liar' } });
+  const after = await ana.waitRoom((r) => r.views[0].round === 2);
+  assert.equal(after.views[0].last.hands[1].length, 5, 'the reveal shows every hand');
+  assert.equal(after.views[0].dice[1], null, 'the new dice are secret again');
+  ana.close();
+  ben.close();
+});
+
+test('mastermind solo can be played without a computer opponent', async () => {
+  const kim = await new Client('Kim').connect();
+  const { code } = await kim.request({ t: 'room.create', game: 'mastermind', mode: 'solo', bots: 0, level: 'hard' });
+  await kim.request({ t: 'room.join', code });
+  const room = await kim.waitRoom((r) => r.phase === 'playing');
+  assert.equal(room.seats.length, 1);
+  assert.equal(room.views[0].phase, 'playing');
+  const two = await kim.request({ t: 'room.create', game: 'mastermind', mode: 'solo', bots: 1, level: 'hard' });
+  await kim.request({ t: 'room.join', code: two.code });
+  const r2 = await kim.waitRoom((r) => r.code === two.code && r.phase === 'playing' && r.views[0]?.ready[1]);
+  assert.equal(r2.seats[1].kind, 'bot');
+  assert.equal(r2.views[0].phase, 'setup', 'the computer has set its code; you still need to set yours');
+  kim.close();
 });

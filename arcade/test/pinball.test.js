@@ -110,7 +110,8 @@ test('simulated games always finish without stuck or escaped balls', () => {
 test('score attack engine: progress, finish and ranking', () => {
   let s = scoreAttack.setup({ players: 2, options: { balls: '3' } });
   assert.deepEqual(scoreAttack.actors(s), [0, 1]);
-  s = scoreAttack.act(s, 0, { type: 'progress', score: 1000, ball: 2 });
+  s = scoreAttack.act(s, 0, { type: 'progress', score: 1000, stat: 2 });
+  assert.equal(scoreAttack.view(s).players[0].stat, 2);
   assert.throws(() => scoreAttack.act(s, 0, { type: 'progress', score: 500 }), /only go up/);
   s = scoreAttack.act(s, 1, { type: 'finish', score: 4000 });
   assert.deepEqual(scoreAttack.actors(s), [0]);

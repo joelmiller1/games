@@ -4,7 +4,19 @@ import { ENGINES } from '../shared/games/index.js';
 import { getGame, seatLabel, botName, PLAYER_COLORS } from '../shared/games/meta.js';
 import { GameError } from '../shared/lib/game.js';
 
-const BOT_DELAY = { yahtzee: 850, battleship: 750, tictactoe: 550, connect4: 450, checkers: 350, chess: 250 };
+const BOT_DELAY = {
+  yahtzee: 850,
+  battleship: 750,
+  tictactoe: 550,
+  connect4: 450,
+  checkers: 350,
+  chess: 250,
+  reversi: 400,
+  mancala: 700,
+  dotsboxes: 450,
+  mastermind: 900,
+  liarsdice: 1300,
+};
 const BOT_COLORS = ['#94a3b8', '#a8a29e', '#9ca3af', '#a1a1aa', '#cbd5e1'];
 
 export function humanSeat(player) {
@@ -421,7 +433,7 @@ export class Room {
     if (seatIndex === undefined) return;
     this.botPending = true;
     const version = this.version;
-    const delay = BOT_DELAY[this.gameId] ?? 500;
+    const delay = this.engine.botDelay?.(this.state) ?? BOT_DELAY[this.gameId] ?? 500;
     this.botTimer = setTimeout(() => this.runBot(seatIndex, version), delay);
     this.botTimer.unref?.();
   }

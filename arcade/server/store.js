@@ -42,22 +42,27 @@ export class Store {
     }
   }
 
-  /** Adds a score; returns its 1-based rank if it made the table, else null. */
-  addScore(game, name, score, detail = null) {
+  /**
+   * Adds a score to a high score table (a game id, or "game:variant" for games with several).
+   * order 'desc' keeps the highest scores, 'asc' the lowest (times). Returns the 1-based rank if
+   * it made the table, else null.
+   */
+  addScore(board, name, score, detail = null, order = 'desc') {
     if (!Number.isFinite(score) || score <= 0) return null;
-    const list = (this.data.scores[game] ||= []);
+    const list = (this.data.scores[board] ||= []);
     const entry = { name, score, date: new Date().toISOString() };
     if (detail) entry.detail = detail;
     list.push(entry);
-    list.sort((a, b) => b.score - a.score || a.date.localeCompare(b.date));
+    const dir = order === 'asc' ? 1 : -1;
+    list.sort((a, b) => dir * (a.score - b.score) || a.date.localeCompare(b.date));
     list.length = Math.min(list.length, MAX_SCORES);
     const rank = list.indexOf(entry);
     this.scheduleSave();
     return rank >= 0 ? rank + 1 : null;
   }
 
-  scores(game, limit = 10) {
-    return (this.data.scores[game] || []).slice(0, limit);
+  scores(board, limit = 10) {
+    return (this.data.scores[board] || []).slice(0, limit);
   }
 
   recordResult(game, name, result) {
