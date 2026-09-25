@@ -1,0 +1,20 @@
+# Optional friendly hostname through k3s's bundled Traefik ingress controller.
+# Point games.lan at a node IP in your router / Pi-hole DNS (or change the host below).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: arcade
+  labels:
+    app.kubernetes.io/name: arcade
+spec:
+  rules:
+    - host: games.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: arcade
+                port:
+                  name: http

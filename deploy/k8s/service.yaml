@@ -1,0 +1,17 @@
+# LoadBalancer on port 8080: with k3s's built-in ServiceLB this makes the arcade reachable at
+# http://<any-node-ip>:8080 from every device on your network, no DNS needed.
+# (With MetalLB you get a dedicated IP instead.) Change `type` to ClusterIP to use only the Ingress.
+apiVersion: v1
+kind: Service
+metadata:
+  name: arcade
+  labels:
+    app.kubernetes.io/name: arcade
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: arcade
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
