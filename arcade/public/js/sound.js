@@ -127,6 +127,43 @@ const SFX = {
   bonus: () => arp([784, 988, 1175, 1568], { type: 'square', step: 0.07, dur: 0.1, vol: 0.07 }),
   spinner: () => tone({ freq: 1500, type: 'square', dur: 0.02, vol: 0.04 }),
   kicker: () => tone({ freq: 240, slide: 760, type: 'sawtooth', dur: 0.12, vol: 0.1 }),
+  // board games
+  flip: () => {
+    noise({ dur: 0.05, vol: 0.25, freq: 2600, type: 'bandpass', q: 3 });
+    tone({ freq: 520, slide: 780, type: 'triangle', dur: 0.07, vol: 0.08 });
+  },
+  sow: () => tone({ freq: 700 + Math.random() * 300, type: 'sine', dur: 0.06, vol: 0.1 }),
+  line: () => tone({ freq: 480, slide: 620, type: 'triangle', dur: 0.08, vol: 0.12 }),
+  box: () => arp([660, 990], { type: 'triangle', step: 0.06, dur: 0.12, vol: 0.14 }),
+  peg: () => tone({ freq: 380 + Math.random() * 80, type: 'triangle', dur: 0.06, vol: 0.14 }),
+  pins: () => arp([880, 1100, 1320], { type: 'sine', step: 0.05, dur: 0.07, vol: 0.08 }),
+  bid: () => tone({ freq: 560, type: 'triangle', dur: 0.09, vol: 0.12 }),
+  liar: () => {
+    tone({ freq: 220, type: 'sawtooth', dur: 0.22, vol: 0.1 });
+    tone({ freq: 165, type: 'sawtooth', dur: 0.3, vol: 0.1, delay: 0.12 });
+  },
+  // arcade
+  rotate: () => tone({ freq: 900, type: 'square', dur: 0.03, vol: 0.05 }),
+  shift: () => tone({ freq: 600, type: 'square', dur: 0.02, vol: 0.035 }),
+  lock: () => noise({ dur: 0.06, vol: 0.22, freq: 900, type: 'bandpass', q: 1.5 }),
+  lines: () => arp([523, 659, 784], { type: 'square', step: 0.05, dur: 0.1, vol: 0.07 }),
+  tetris: () => arp([523, 659, 784, 1047, 1319], { type: 'square', step: 0.06, dur: 0.14, vol: 0.08 }),
+  levelup: () => arp([392, 523, 659, 784, 1047], { type: 'triangle', step: 0.07, dur: 0.16, vol: 0.12 }),
+  laser: () => tone({ freq: 1400, slide: 300, type: 'square', dur: 0.09, vol: 0.05 }),
+  rock: () => noise({ dur: 0.35, vol: 0.4, freq: 700 }),
+  rockSmall: () => noise({ dur: 0.18, vol: 0.3, freq: 1500 }),
+  thrust: () => noise({ dur: 0.12, vol: 0.12, freq: 380 }),
+  saucer: () => tone({ freq: 700, slide: 900, type: 'square', dur: 0.12, vol: 0.035 }),
+  extra: () => arp([1047, 1319, 1568, 2093], { type: 'sine', step: 0.08, dur: 0.14, vol: 0.1 }),
+  beatLo: () => tone({ freq: 55, type: 'triangle', dur: 0.12, vol: 0.4 }),
+  beatHi: () => tone({ freq: 62, type: 'triangle', dur: 0.12, vol: 0.4 }),
+  eat: () => tone({ freq: 620, slide: 980, type: 'triangle', dur: 0.08, vol: 0.14 }),
+  crash: () => {
+    noise({ dur: 0.4, vol: 0.45, freq: 600 });
+    tone({ freq: 200, slide: 50, type: 'sawtooth', dur: 0.4, vol: 0.12 });
+  },
+  reveal: () => tone({ freq: 1200 + Math.random() * 200, type: 'sine', dur: 0.03, vol: 0.05 }),
+  flag: () => tone({ freq: 760, slide: 1100, type: 'triangle', dur: 0.06, vol: 0.12 }),
 };
 
 export function play(name, minGapMs = 25) {

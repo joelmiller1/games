@@ -1,7 +1,7 @@
 // A room hosts one game table: seats (humans, computer players or open), spectators,
 // the authoritative game state, chat, rematches and the computer-player/clock timers.
 import { ENGINES } from '../shared/games/index.js';
-import { getGame, seatLabel, botName, PLAYER_COLORS } from '../shared/games/meta.js';
+import { getGame, seatLabel, botName, levelName, PLAYER_COLORS } from '../shared/games/meta.js';
 import { GameError } from '../shared/lib/game.js';
 
 const BOT_DELAY = {
@@ -24,7 +24,7 @@ export function humanSeat(player) {
 }
 
 export function botSeat(level, index = 0) {
-  return { kind: 'bot', playerId: null, name: botName(level), color: BOT_COLORS[index % BOT_COLORS.length], level, wins: 0 };
+  return { kind: 'bot', playerId: null, name: botName(level), color: BOT_COLORS[index % BOT_COLORS.length], level, wins: 0, generic: true };
 }
 
 export function openSeat() {
@@ -106,6 +106,14 @@ export class Room {
   seatAt(index) {
     if (!Number.isInteger(index) || index < 0 || index >= this.seats.length) throw new GameError('No such seat');
     return this.seats[index];
+  }
+
+  /** With several computer players at one table, number them so they can be told apart. */
+  renameBots() {
+    const bots = this.seats.filter((st) => st.kind === 'bot' && st.generic);
+    bots.forEach((st, k) => {
+      st.name = bots.length > 1 ? `Computer ${k + 1} (${levelName(st.level)})` : botName(st.level);
+    });
   }
 
   // ---- views ----
@@ -223,7 +231,7 @@ export class Room {
         if (this.meta.leaveMode === 'bot') {
           for (const i of seats) {
             const wins = this.seats[i].wins;
-            this.seats[i] = { ...botSeat('medium', i), wins, name: `${name} (computer)` };
+            this.seats[i] = { ...botSeat('medium', i), wins, name: `${name} (computer)`, generic: false };
           }
           this.system(`${name} left: the computer took over their seat`);
           this.scheduleBot();
@@ -290,12 +298,14 @@ export class Room {
       const lv = ['easy', 'medium', 'hard'].includes(level) ? level : 'medium';
       if (seat.kind === 'human') this.spectators.add(seat.playerId);
       this.seats[index] = botSeat(lv, index);
+      this.renameBots();
     } else if (kind === 'open') {
       if (seat.kind === 'human') {
         this.spectators.add(seat.playerId);
         this.system(`${seat.name} was moved to the audience`);
       }
       this.seats[index] = openSeat();
+      this.renameBots();
     } else throw new GameError('Invalid seat type');
     this.touch();
     this.broadcast();
@@ -321,6 +331,7 @@ export class Room {
       this.spectators.add(seat.playerId);
     }
     this.seats.splice(index, 1);
+    this.renameBots();
     this.broadcast();
     this.hub.lobbyChanged();
   }

@@ -143,12 +143,14 @@ export function mount(el, { game }) {
     navigate('', { replace: true });
     return null;
   }
-  const isPinball = meta.id === 'pinball';
-  const modes = isPinball
+  // Games that run in the browser (pinball, Tetris, ...) have their own page for solo and pass & play.
+  const isArcade = !!meta.realtime;
+  const timed = meta.scoring?.format === 'time';
+  const modes = isArcade
     ? [
-        { id: 'solo', title: 'Solo', sub: 'Chase the high score', icon: 'play' },
+        { id: 'solo', title: 'Solo', sub: timed ? 'Beat the clock' : 'Chase the high score', icon: 'play' },
         { id: 'local', title: 'Pass & Play', sub: 'Take turns on this device', icon: 'device' },
-        { id: 'online', title: 'Score Attack', sub: 'Everyone plays at once', icon: 'wifi' },
+        { id: 'online', title: timed ? 'Race' : 'Score Attack', sub: timed ? 'Same board, everyone at once' : 'Everyone plays at once', icon: 'wifi' },
       ]
     : [
         { id: 'solo', title: 'vs Computer', sub: meta.players[0] === 1 ? 'Solo or with bots' : 'Easy, medium or hard', icon: 'robot' },
@@ -161,7 +163,7 @@ export function mount(el, { game }) {
   const state = {
     level: pref('level', 'medium'),
     seat: 0,
-    bots: meta.id === 'yahtzee' ? 1 : 1,
+    bots: { liarsdice: 3, mastermind: 0 }[meta.id] ?? 1,
     options: Object.fromEntries(meta.options.map((o) => [o.key, pref(`opt.${meta.id}.${o.key}`, o.default)])),
     listed: true,
     seats: meta.onlineDefault,
@@ -208,27 +210,34 @@ export function mount(el, { game }) {
     return b;
   }
 
+  /** Local page for a browser game, with the chosen options (and players for pass & play). */
+  function arcadeUrl(names) {
+    const q = new URLSearchParams(meta.id === 'pinball' ? { balls: state.options.balls } : state.options);
+    if (names) q.set('players', names.join('|'));
+    return `${meta.id === 'pinball' ? 'pinball' : `arcade/${meta.id}`}?${q}`;
+  }
+
   function renderForm() {
     const parts = [];
-    if (isPinball) {
+    if (isArcade) {
       parts.push(...optionControls(meta, state.options));
       if (mode === 'solo') {
         parts.push(
           startButton('Play', () => {
             saveOptions();
-            navigate(`pinball?balls=${state.options.balls}`);
+            navigate(arcadeUrl(null));
           }),
         );
       } else if (mode === 'local') {
         const names = state.names.slice(0, 4);
         while (names.length < 2) names.push(`Player ${names.length + 1}`);
         state.names = names;
-        parts.push(field('Players take turns, one ball each', namesEditor(meta, state.names, { min: 2, max: 4 })));
+        const how = meta.id === 'pinball' ? 'Players take turns, one ball each' : 'Players take turns, one game each';
+        parts.push(field(how, namesEditor(meta, state.names, { min: 2, max: 4 })));
         parts.push(
           startButton('Play', () => {
             saveOptions();
-            const list = state.names.map((n, i) => n.trim() || `Player ${i + 1}`).join('|');
-            navigate(`pinball?balls=${state.options.balls}&players=${encodeURIComponent(list)}`);
+            navigate(arcadeUrl(state.names.map((n, i) => n.trim() || `Player ${i + 1}`)));
           }),
         );
       } else {
@@ -243,14 +252,33 @@ export function mount(el, { game }) {
         parts.push(h('div', { class: 'divider' }, 'or join with a code'), joinByCode());
       }
     } else if (mode === 'solo') {
-      parts.push(field('Difficulty', seg(LEVELS.map((l) => ({ value: l.id, label: l.name })), state.level, (v) => (state.level = v), 'Difficulty')));
-      if (meta.players[1] === 2) {
-        const choices = [0, 1].map((i) => ({ value: i, label: seatLabel(meta, i) })).concat([{ value: -1, label: 'Random' }]);
-        parts.push(field(meta.id === 'battleship' ? 'Fire first?' : 'You play', seg(choices, state.seat, (v) => (state.seat = v), 'Your side')));
+      // A solo Mastermind puzzle has no computer player to set a difficulty for.
+      if (!(meta.id === 'mastermind' && state.bots === 0)) {
+        parts.push(field('Difficulty', seg(LEVELS.map((l) => ({ value: l.id, label: l.name })), state.level, (v) => (state.level = v), 'Difficulty')));
+      }
+      if (meta.players[0] === 2 && meta.players[1] === 2) {
+        const labelled = !!meta.seatLabels;
+        const choices = labelled
+          ? [0, 1].map((i) => ({ value: i, label: seatLabel(meta, i) })).concat([{ value: -1, label: 'Random' }])
+          : [
+              { value: 0, label: 'You' },
+              { value: 1, label: 'Computer' },
+              { value: -1, label: 'Random' },
+            ];
+        const title = meta.id === 'battleship' ? 'Fire first?' : labelled ? 'You play' : 'Who starts?';
+        parts.push(field(title, seg(choices, state.seat, (v) => (state.seat = v), 'Your side')));
       } else {
         const choices = [];
-        for (let n = 0; n < meta.players[1]; n++) choices.push({ value: n, label: n === 0 ? 'None (solo)' : String(n) });
-        parts.push(field('Computer opponents', seg(choices, state.bots, (v) => (state.bots = v), 'Computer opponents')));
+        for (let n = Math.max(0, meta.players[0] - 1); n < meta.players[1]; n++) {
+          const label = meta.id === 'mastermind' ? (n === 0 ? 'Solo puzzle' : 'Race the computer') : n === 0 ? 'None (solo)' : String(n);
+          choices.push({ value: n, label });
+        }
+        if (!choices.some((c) => c.value === state.bots)) state.bots = choices[0].value;
+        const onBots = (v) => {
+          state.bots = v;
+          if (meta.id === 'mastermind') renderForm();
+        };
+        parts.push(field(meta.id === 'mastermind' ? 'Game' : 'Computer opponents', seg(choices, state.bots, onBots, 'Computer opponents')));
       }
       parts.push(...optionControls(meta, state.options));
       parts.push(

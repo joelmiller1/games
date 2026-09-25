@@ -310,6 +310,7 @@ export class Hub {
       room.seats.push(humanSeat(player));
       for (let i = 1; i < seats; i++) room.seats.push(openSeat());
     }
+    room.renameBots();
     this.rooms.set(room.code, room);
     this.log.info(`room ${room.code} created: ${meta.id} (${mode}) by ${player.name}`);
     if (mode !== 'online') room.startGame();

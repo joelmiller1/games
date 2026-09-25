@@ -1,7 +1,7 @@
 // Home: game catalogue, live list of open tables and the hall of fame.
 import { h, toast, fill } from '../ui.js';
 import { gameArt, gameBadge, icon } from '../icons.js';
-import { GAMES, getGame } from '../../shared/games/meta.js';
+import { GAMES, CATEGORIES, getGame, formatScore, scoring } from '../../shared/games/meta.js';
 import { net } from '../net.js';
 import { navigate } from '../router.js';
 
@@ -17,7 +17,7 @@ function gameCard(g) {
     gameArt(g.id, 84),
     h('h3', g.name),
     h('p', g.tagline),
-    h('div', { class: 'chips' }, h('span', { class: 'chip' }, playersText(g)), g.bots ? h('span', { class: 'chip' }, 'vs computer') : null),
+    h('div', { class: 'chips' }, h('span', { class: 'chip' }, playersText(g)), g.bots ? h('span', { class: 'chip' }, 'vs computer') : g.leaderboard ? h('span', { class: 'chip' }, 'high scores') : null),
   );
 }
 
@@ -61,8 +61,13 @@ export function renderBoards(boards, { only = null, limit = 5 } = {}) {
     if (only && g.id !== only) continue;
     const b = boards[g.id];
     if (!b) continue;
-    if (b.scores?.length) {
-      sections.push(h('div', h('h4', `${g.name} high scores`), rankList(b.scores.slice(0, limit), (x) => x.score.toLocaleString())));
+    if (b.boards) {
+      const kind = scoring(g).format === 'time' ? 'best times' : 'high scores';
+      for (const board of b.boards) {
+        if (!board.scores?.length) continue;
+        const title = only ? `${board.label ? `${board.label} ` : ''}${kind}` : `${g.name}${board.label ? ` · ${board.label}` : ''} ${kind}`;
+        sections.push(h('div', h('h4', title), rankList(board.scores.slice(0, limit), (x) => formatScore(g, x.score))));
+      }
     } else if (b.records?.length) {
       sections.push(
         h(
@@ -116,7 +121,9 @@ export function mount(el) {
         ),
         h('div', { class: 'join-inline' }, codeInput, h('button', { class: 'btn btn-primary', type: 'button', onClick: join }, 'Join table')),
       ),
-      h('div', { class: 'game-grid' }, GAMES.map(gameCard)),
+      ...CATEGORIES.map((cat) =>
+        h('section', { class: 'catalogue' }, h('h2', { class: 'cat-title' }, cat.name), h('div', { class: 'game-grid' }, GAMES.filter((g) => g.category === cat.id).map(gameCard))),
+      ),
       h(
         'div',
         { class: 'home-columns' },

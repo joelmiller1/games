@@ -109,6 +109,7 @@ route('', () => import('./views/home.js'));
 route('play/:game', () => import('./views/setup.js'));
 route('room/:code', () => import('./views/room.js'));
 route('pinball', () => import('./views/pinball.js'));
+route('arcade/:game', () => import('./views/arcade.js'));
 
 startRouter(document.getElementById('view'), () => {
   document.getElementById('view').focus({ preventScroll: true });

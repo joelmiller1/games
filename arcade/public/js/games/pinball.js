@@ -29,12 +29,14 @@ export function create(ctx) {
     }
     lastSent = now;
     pending = null;
-    ctx.act({ type, score, ball }, seat).catch(() => {});
+    ctx.act({ type, score, stat: ball }, seat).catch(() => {});
   }
 
   const flush = setInterval(() => {
     if (pending && !finished) send('progress', pending.score, pending.ball);
   }, 800);
+
+  const ballsPerPlayer = () => Number(view.options?.balls) || 3;
 
   function startGame() {
     finished = false;
@@ -52,7 +54,7 @@ export function create(ctx) {
           game = new PinballGame({
             canvas,
             players: [me.name],
-            balls: view.balls,
+            balls: ballsPerPlayer(),
             onEvent: (ev) => {
               // Events can fire while the game is still being constructed, before `game` is set.
               const rules = game?.rules;
@@ -70,7 +72,7 @@ export function create(ctx) {
         }
         return;
       }
-      fill(overlay, h('h2', 'Get ready'), h('p', { class: 'big-code' }, String(n)), h('p', { class: 'muted' }, `${view.balls} balls. Highest score wins.`));
+      fill(overlay, h('h2', 'Get ready'), h('p', { class: 'big-code' }, String(n)), h('p', { class: 'muted' }, `${ballsPerPlayer()} balls. Highest score wins.`));
       ctx.play('click');
       n--;
       countdown = setTimeout(tick, 800);
@@ -87,7 +89,7 @@ export function create(ctx) {
           'div',
           { class: ['pb-score', p.i === seat && 'me'] },
           h('span', `${k + 1}. ${room.seats[p.i]?.name || 'Player'}`),
-          h('span', { class: 'muted small' }, p.done ? 'finished' : `ball ${p.ball}/${view.balls}`),
+          h('span', { class: 'muted small' }, p.done ? 'finished' : `ball ${Math.max(1, p.stat)}/${ballsPerPlayer()}`),
           h('span', { class: 'v' }, p.score.toLocaleString()),
         ),
       );
@@ -121,7 +123,7 @@ export function create(ctx) {
         const left = v.players.filter((p) => !p.done).length;
         return `Finished! Waiting for ${left} more player${left === 1 ? '' : 's'}`;
       }
-      return `Score attack: ball ${me.ball} of ${v.balls}`;
+      return `Score attack: ball ${Math.max(1, me.stat)} of ${Number(v.options?.balls) || 3}`;
     },
     destroy() {
       clearInterval(flush);

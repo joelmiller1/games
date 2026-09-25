@@ -94,7 +94,7 @@ export function mount(el, _params, query) {
   function loadBoard() {
     fetchBoards()
       .then((b) => {
-        const list = b.pinball?.scores || [];
+        const list = b.pinball?.boards?.[0]?.scores || [];
         fill(
           boardList,
           list.length
