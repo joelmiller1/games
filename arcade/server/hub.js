@@ -374,8 +374,9 @@ export class Hub {
 
   // ---- lobby ----
   lobbyMessage() {
+    // Only list tables somebody is actually connected to; abandoned ones stay reachable by link until they expire.
     const rooms = [...this.rooms.values()]
-      .filter((r) => r.visibility === 'public' && r.mode === 'online')
+      .filter((r) => r.visibility === 'public' && r.mode === 'online' && r.viewers.size > 0)
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, 100)
       .map((r) => r.summary());

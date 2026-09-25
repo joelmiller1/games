@@ -1,5 +1,6 @@
 // Inline SVG icons. Game icons are small illustrations; UI icons are 24px strokes.
-import { s } from './ui.js';
+import { s, h } from './ui.js';
+import { getGame } from '../shared/games/meta.js';
 
 const UI = {
   back: 'M15 18l-6-6 6-6',
@@ -123,4 +124,10 @@ const GAME_ART = {
 
 export function gameArt(id, size = 64) {
   return s('svg', { viewBox: '0 0 64 64', width: size, height: size, 'aria-hidden': 'true', class: 'game-art' }, GAME_ART[id] ? GAME_ART[id]() : []);
+}
+
+/** Game art on a coloured tile, readable on light and dark backgrounds. */
+export function gameBadge(id, size = 36) {
+  const accent = getGame(id)?.accent || '#8b5cf6';
+  return h('span', { class: 'game-badge', style: { '--accent-c': accent, width: `${size}px`, height: `${size}px` } }, gameArt(id, Math.round(size * 0.8)));
 }

@@ -1,6 +1,6 @@
 // A game table: waiting room (seats, invite link, QR), live game, result + rematch, chat.
 import { h, toast, modal, copyText, avatar, plural, fill } from '../ui.js';
-import { gameArt, icon } from '../icons.js';
+import { gameBadge, icon } from '../icons.js';
 import { getGame, LEVELS } from '../../shared/games/meta.js';
 import { net } from '../net.js';
 import { navigate, absoluteUrl } from '../router.js';
@@ -135,7 +135,7 @@ export function mount(el, { code }) {
     const modeLabel = room.mode === 'solo' ? 'vs computer' : room.mode === 'local' ? 'pass & play' : room.visibility === 'private' ? 'private table' : 'online table';
     fill(head, 
       h('a', { class: 'icon-btn', href: `play/${meta.id}`, 'data-link': true, 'aria-label': 'Back' }, icon('back', 18)),
-      h('div', { class: 'room-title' }, gameArt(meta.id, 36), h('h1', meta.name), h('span', { class: 'room-code', title: 'Table code' }, code), h('span', { class: 'chip' }, modeLabel)),
+      h('div', { class: 'room-title' }, gameBadge(meta.id, 38), h('h1', meta.name), h('span', { class: 'room-code', title: 'Table code' }, code), h('span', { class: 'chip' }, modeLabel)),
       room.spectators.length ? h('span', { class: 'chip', title: room.spectators.join(', ') }, icon('eye', 14), `${room.spectators.length}`) : null,
       ...buttons,
     );

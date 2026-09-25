@@ -626,10 +626,18 @@ label.field {
   border: 1px solid var(--border);
 }
 
-.table-row .game-art {
-  width: 36px;
-  height: 36px;
+.game-badge {
+  --accent-c: #8b5cf6;
+  display: inline-grid;
+  place-items: center;
   flex: none;
+  border-radius: 11px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--accent-c) 88%, #000), color-mix(in srgb, var(--accent-c) 48%, #0b1020));
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent-c) 30%, transparent);
+}
+
+.game-badge .game-art {
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
 }
 
 .table-row .info {
@@ -886,11 +894,7 @@ label.field {
   overflow: hidden;
 }
 
-.room-title .game-art {
-  width: 36px;
-  height: 36px;
-  flex: none;
-}
+
 
 .room-title h1 {
   margin: 0;

@@ -1,6 +1,6 @@
 // Home: game catalogue, live list of open tables and the hall of fame.
 import { h, toast, fill } from '../ui.js';
-import { gameArt, icon } from '../icons.js';
+import { gameArt, gameBadge, icon } from '../icons.js';
 import { GAMES, getGame } from '../../shared/games/meta.js';
 import { net } from '../net.js';
 import { navigate } from '../router.js';
@@ -36,7 +36,7 @@ export function tableRow(room, { showGame = true } = {}) {
   return h(
     'div',
     { class: 'table-row' },
-    showGame ? gameArt(room.game, 36) : null,
+    showGame ? gameBadge(room.game, 38) : null,
     h(
       'div',
       { class: 'info' },

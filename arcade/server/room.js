@@ -171,11 +171,13 @@ export class Room {
     }
     this.hub.send(conn, { t: 'chat.history', code: this.code, messages: this.chat });
     this.broadcast();
+    this.hub.lobbyChanged();
   }
 
   removeViewer(conn) {
     if (!this.viewers.delete(conn)) return;
     if (!this.closed) this.broadcast();
+    this.hub.lobbyChanged();
   }
 
   leave(player) {

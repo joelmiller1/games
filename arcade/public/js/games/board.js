@@ -168,7 +168,13 @@ export function createBoard(opts) {
     if (sq === null) return;
     const canDrag = opts.canDrag?.(sq) && pieces.has(sq);
     drag = { sq, x: e.clientX, y: e.clientY, moved: false, canDrag, id: e.pointerId };
-    if (canDrag) el.setPointerCapture(e.pointerId);
+    if (canDrag) {
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch {
+        /* pointer already gone */
+      }
+    }
   });
   el.addEventListener('pointermove', (e) => {
     if (!drag || !drag.canDrag || e.pointerId !== drag.id) return;

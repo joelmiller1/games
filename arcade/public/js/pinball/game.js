@@ -123,7 +123,11 @@ export class PinballGame {
     e.preventDefault();
     if (down) {
       if (this.paused) return this.setPaused(false);
-      this.canvas.setPointerCapture?.(e.pointerId);
+      try {
+        this.canvas.setPointerCapture?.(e.pointerId);
+      } catch {
+        /* pointer already gone */
+      }
       const rect = this.canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width;
       const ballWaiting = this.rules.world.balls.some((b) => !b.lost && onPlunger(b));
