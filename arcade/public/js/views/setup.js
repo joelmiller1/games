@@ -163,7 +163,7 @@ export function mount(el, { game }) {
   const state = {
     level: pref('level', 'medium'),
     seat: 0,
-    bots: { liarsdice: 3, mastermind: 0 }[meta.id] ?? 1,
+    bots: meta.id === 'mastermind' ? 0 : 1,
     options: Object.fromEntries(meta.options.map((o) => [o.key, pref(`opt.${meta.id}.${o.key}`, o.default)])),
     listed: true,
     seats: meta.onlineDefault,

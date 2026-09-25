@@ -137,11 +137,6 @@ const SFX = {
   box: () => arp([660, 990], { type: 'triangle', step: 0.06, dur: 0.12, vol: 0.14 }),
   peg: () => tone({ freq: 380 + Math.random() * 80, type: 'triangle', dur: 0.06, vol: 0.14 }),
   pins: () => arp([880, 1100, 1320], { type: 'sine', step: 0.05, dur: 0.07, vol: 0.08 }),
-  bid: () => tone({ freq: 560, type: 'triangle', dur: 0.09, vol: 0.12 }),
-  liar: () => {
-    tone({ freq: 220, type: 'sawtooth', dur: 0.22, vol: 0.1 });
-    tone({ freq: 165, type: 'sawtooth', dur: 0.3, vol: 0.1, delay: 0.12 });
-  },
   // arcade
   rotate: () => tone({ freq: 900, type: 'square', dur: 0.03, vol: 0.05 }),
   shift: () => tone({ freq: 600, type: 'square', dur: 0.02, vol: 0.035 }),

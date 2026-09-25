@@ -147,13 +147,6 @@ const GAME_ART = {
     out.push(s('circle', { cx: 44, cy: 12, r: 3.2, fill: '#111827' }), s('circle', { cx: 52, cy: 12, r: 3.2, fill: '#fff' }));
     return out;
   },
-  liarsdice: () => [
-    s('path', { d: 'M8 14h26l-4 30H12z', fill: '#7c2d12' }),
-    s('path', { d: 'M6 12h30v5H6z', fill: '#9a3412' }),
-    s('path', { d: 'M13 20h4l-2 20h-3z', fill: '#c2410c', opacity: 0.7 }),
-    s('g', { transform: 'rotate(-10 44 42)' }, s('rect', { x: 34, y: 32, width: 20, height: 20, rx: 5, fill: '#fff' }), pip(39.5, 37.5, 2.3), pip(48.5, 46.5, 2.3), pip(44, 42, 2.3)),
-    s('g', { transform: 'rotate(14 26 50)' }, s('rect', { x: 17, y: 42, width: 16, height: 16, rx: 4, fill: '#fef3c7' }), pip(21.5, 46.5, 2), pip(28.5, 53.5, 2)),
-  ],
   minesweeper: () => {
     const spikes = [];
     for (let k = 0; k < 8; k++) {
@@ -192,6 +185,50 @@ const GAME_ART = {
     s('path', { d: 'M48 42c0-3 2-5 4-6', stroke: '#65a30d', 'stroke-width': 2, fill: 'none', 'stroke-linecap': 'round' }),
     s('circle', { cx: 45.5, cy: 46.5, r: 2, fill: '#fff', opacity: 0.6 }),
   ],
+  blocks: () => {
+    const gem = (cx, cy, shape, color) => {
+      if (shape === 'circle') return s('circle', { cx, cy, r: 7.5, fill: color, stroke: 'rgba(0,0,0,0.35)', 'stroke-width': 1.5 });
+      const pts = {
+        diamond: [[0, -9], [8, 0], [0, 9], [-8, 0]],
+        tri: [[0, -8.5], [8.5, 6.5], [-8.5, 6.5]],
+        hex: [0, 1, 2, 3, 4, 5].map((k) => [Math.cos((Math.PI / 3) * k + Math.PI / 6) * 8.5, Math.sin((Math.PI / 3) * k + Math.PI / 6) * 8.5]),
+      }[shape];
+      return s('path', { d: 'M' + pts.map(([x, y]) => `${(cx + x).toFixed(1)} ${(cy + y).toFixed(1)}`).join('L') + 'z', fill: color, stroke: 'rgba(0,0,0,0.35)', 'stroke-width': 1.5 });
+    };
+    return [
+      s('rect', { x: 11, y: 5, width: 22, height: 57, rx: 5, fill: 'rgba(0,0,0,0.22)' }),
+      gem(22, 16, 'circle', '#ef4444'),
+      gem(22, 34, 'diamond', '#facc15'),
+      gem(22, 52, 'hex', '#22d3ee'),
+      gem(40, 52, 'tri', '#3b82f6'),
+      gem(55, 52, 'tri', '#3b82f6'),
+      gem(47.5, 36, 'tri', '#3b82f6'),
+      s('path', { d: 'M52 10l2 5 5 2-5 2-2 5-2-5-5-2 5-2z', fill: '#fff' }),
+    ];
+  },
+  breakout: () => {
+    const out = [];
+    ['#ef4444', '#f97316', '#facc15', '#22c55e'].forEach((c, r) => {
+      for (let k = 0; k < 4; k++) if (!(r === 3 && k === 1)) out.push(s('rect', { x: 6 + k * 13.5, y: 8 + r * 7, width: 12, height: 5.5, rx: 1.5, fill: c }));
+    });
+    out.push(s('path', { d: 'M22 38l12 12', stroke: 'rgba(255,255,255,0.45)', 'stroke-width': 2, 'stroke-dasharray': '2 3' }));
+    out.push(s('circle', { cx: 36, cy: 52, r: 4.5, fill: '#fff' }));
+    out.push(s('rect', { x: 20, y: 57, width: 26, height: 5, rx: 2.5, fill: '#a5f3fc' }));
+    return out;
+  },
+  2048: () => {
+    const tile = (x, y, bg, fg, text, size) => [
+      s('rect', { x, y, width: 26, height: 26, rx: 4, fill: bg }),
+      s('text', { x: x + 13, y: y + 13 + size * 0.36, 'text-anchor': 'middle', 'font-size': size, 'font-weight': 900, 'font-family': 'system-ui, sans-serif', fill: fg }, text),
+    ];
+    return [
+      s('rect', { x: 2, y: 2, width: 60, height: 60, rx: 7, fill: '#bbada0' }),
+      tile(5, 5, '#eee4da', '#776e65', '2', 15),
+      tile(33, 5, '#f2b179', '#fff', '8', 15),
+      tile(5, 33, '#f67c5f', '#fff', '32', 13),
+      tile(33, 33, '#edc22e', '#fff', '2048', 8.5),
+    ];
+  },
   pinball: () => [
     s('path', { d: 'M10 50l16 6', stroke: '#fff', 'stroke-width': 6, 'stroke-linecap': 'round' }),
     s('path', { d: 'M54 50l-16 6', stroke: '#fff', 'stroke-width': 6, 'stroke-linecap': 'round' }),

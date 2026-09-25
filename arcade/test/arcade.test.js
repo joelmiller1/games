@@ -47,5 +47,7 @@ test('high score tables per variant', () => {
   assert.equal(boardFor(getGame('minesweeper'), { level: 'bogus' }), 'minesweeper:beginner');
   assert.equal(boardFor(getGame('snake'), { walls: 'wrap' }), 'snake:wrap');
   assert.equal(boardFor(getGame('tetris'), { start: '10' }), 'tetris');
+  assert.equal(boardFor(getGame('2048'), { time: '120' }), '2048:120');
+  assert.equal(boardFor(getGame('2048'), {}), '2048:none');
   assert.equal(snake.setup({ players: 1, options: { walls: 'wrap' } }).options.walls, 'wrap');
 });

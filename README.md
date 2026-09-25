@@ -1,6 +1,6 @@
 # Games
 
-This repository holds **Arcade**, sixteen browser games for your local network that run in your k3s cluster. Play against the computer, pass one device around, or invite anyone on your Wi-Fi to a table with a link, a QR code or a four-letter code.
+This repository holds **Arcade**, eighteen browser games for your local network that run in your k3s cluster. Play against the computer, pass one device around, or invite anyone on your Wi-Fi to a table with a link, a QR code or a four-letter code.
 
 It also still contains the original C++ `BattleShip/` prototype, which is untouched.
 
@@ -24,24 +24,26 @@ It also still contains the original C++ `BattleShip/` prototype, which is untouc
 | Game | Players | vs computer | Highlights |
 | --- | --- | --- | --- |
 | **Yahtzee** | 1–6 | Easy / Medium / Hard | Official scoring with Yahtzee bonuses and Joker rules, solo high scores. Hard averages about 245 points. |
-| **Liar's Dice** | 2–6 | Easy / Medium / Hard | Everyone's dice stay hidden (even from spectators). Wild ones and "spot on" calls are optional; every challenge ends with a reveal of all the dice. |
 | **Mastermind** | 1–2 | Easy / Medium / Hard | Crack a random code alone, or set codes for each other and race. 4 pegs / 6 colours or 5 pegs / 8 colours. Hard cracks the classic code in about 4.4 guesses. |
 | **Minesweeper** | 1–8 | n/a | Beginner, Intermediate and Expert, safe first click, chording, long-press or flag mode on touch screens. Best times per difficulty; online it is a race on the same minefield. |
+| **2048** | 1–8 | n/a | Slide and merge the tiles with arrow keys or swipes. Play without a limit or against a 2 or 5 minute clock (each with its own high score table). |
 
 ### Arcade
 
 | Game | Players | Highlights |
 | --- | --- | --- |
 | **Tetris** | 1–8 | Guideline rotation with wall kicks, 7-piece bag, hold, ghost piece, T-spins, combos, back-to-back bonuses. Keyboard, touch gestures or buttons. |
+| **Falling Blocks** | 1–8 | Columns-style jewels: cycle a falling trio and line up three of a colour across, down or diagonally. Chain reactions score more. Every colour has its own shape. |
 | **Pinball** | 1–8 | Physics table with flippers, bumpers, slingshots, drop targets, multiball, kickback, tilt. |
+| **Breakout** | 1–8 | Five brick layouts that loop faster, silver and gold bricks, and power-ups (wide paddle, multiball, slow ball, extra life). Mouse, keys or touch drag. |
 | **Asteroids** | 1–8 | Vector graphics, splitting rocks, both kinds of flying saucer, hyperspace, extra ships every 10,000 points. |
 | **Snake** | 1–8 | Smooth movement, golden apples, solid or wrap-around walls (each with its own high score table). |
 
-The arcade games and Minesweeper run in your browser. Play them solo, take turns on one device, or start an
-online table where everyone plays at the same time with the same pieces, rocks or minefield while the scores update live.
+The arcade games, Minesweeper and 2048 run in your browser. Play them solo, take turns on one device, or start an
+online table where everyone plays at the same time with the same pieces, tiles, rocks or minefield while the scores update live.
 
 Every table has chat, spectators and rematches (players swap sides each rematch). The hall of fame keeps high scores
-(Yahtzee and the arcade games), best times (Minesweeper) and win/loss records between people.
+(Yahtzee, 2048 and the arcade games), best times (Minesweeper) and win/loss records between people.
 
 <p>
   <img alt="Chess against the computer" src="docs/screenshots/chess.webp" width="49%">
@@ -49,10 +51,14 @@ Every table has chat, spectators and rematches (players swap sides each rematch)
 </p>
 <p>
   <img alt="Tetris" src="docs/screenshots/tetris.webp" width="49%">
-  <img alt="Minesweeper" src="docs/screenshots/minesweeper.webp" width="49%">
+  <img alt="Falling Blocks" src="docs/screenshots/blocks.webp" width="49%">
 </p>
 <p>
-  <img alt="Liar's Dice reveal" src="docs/screenshots/liarsdice.webp" width="49%">
+  <img alt="Minesweeper" src="docs/screenshots/minesweeper.webp" width="49%">
+  <img alt="2048" src="docs/screenshots/2048.webp" width="49%">
+</p>
+<p>
+  <img alt="Breakout" src="docs/screenshots/breakout.webp" width="49%">
   <img alt="Mancala against the computer" src="docs/screenshots/mancala.webp" width="49%">
 </p>
 
@@ -154,14 +160,15 @@ arcade/
   shared/chess/    move generator (perft-verified) and alpha-beta search
   public/          single-page app: lobby, setup and room views, one board module per game
   public/js/pinball/  pinball physics, table, rules and canvas renderer (runs in the browser)
-  public/js/arcade/   Tetris, Asteroids, Snake and Minesweeper: rules (tested in Node) and screens
+  public/js/arcade/   the browser games (Tetris, Falling Blocks, Breakout, Asteroids, Snake, Minesweeper,
+                      2048): rules (tested in Node) and screens
 deploy/k8s/        kustomize manifests for k3s
 ```
 
 The server is authoritative: clients send actions, the engine validates them, and every seat gets its own
 view of the state (so Battleship fleets never reach the other player's browser). Computer players are just seats
 whose moves come from the engine's `bot()` function, run in worker threads so a chess search never stalls
-other tables. The arcade games and Minesweeper are the exception: they run in each browser, and the server hands out
+other tables. The arcade games, Minesweeper and 2048 are the exception: they run in each browser, and the server hands out
 a shared random seed and keeps the scores.
 
 To add a turn-based game: add its metadata to `shared/games/meta.js`, write an engine in `shared/games/` and register
