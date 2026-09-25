@@ -160,9 +160,9 @@ export class Hub {
         conn.room = null;
         return null;
       case 'room.leave': {
-        const r = conn.room || this.rooms.get(String(msg.code || '').toUpperCase());
+        const r = (msg.code && this.rooms.get(String(msg.code).toUpperCase())) || conn.room;
         if (r) r.leave(player);
-        conn.room = null;
+        if (conn.room === r) conn.room = null;
         return null;
       }
       case 'room.sit':

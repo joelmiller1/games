@@ -90,6 +90,12 @@ export class Room {
     if (this.phase !== 'waiting') throw new GameError('The game has already started');
   }
 
+  /** Seat numbers come from the browser: accept only real indexes. */
+  seatAt(index) {
+    if (!Number.isInteger(index) || index < 0 || index >= this.seats.length) throw new GameError('No such seat');
+    return this.seats[index];
+  }
+
   // ---- views ----
   summary() {
     return {
@@ -242,8 +248,8 @@ export class Room {
   sit(player, index) {
     this.requireWaiting();
     if (this.mode !== 'online') throw new GameError('Seats cannot be changed here');
-    const seat = this.seats[index];
-    if (!seat || seat.kind !== 'open') throw new GameError('That seat is not free');
+    const seat = this.seatAt(index);
+    if (seat.kind !== 'open') throw new GameError('That seat is not free');
     for (const i of this.controlledSeats(player.id)) this.seats[i] = openSeat();
     this.seats[index] = humanSeat(player);
     this.spectators.delete(player.id);
@@ -265,8 +271,7 @@ export class Room {
   configureSeat(player, index, kind, level) {
     this.requireHost(player);
     this.requireWaiting();
-    const seat = this.seats[index];
-    if (!seat) throw new GameError('No such seat');
+    const seat = this.seatAt(index);
     if (seat.kind === 'human' && seat.playerId === player.id) throw new GameError('You are sitting there');
     if (kind === 'bot') {
       if (!this.meta.bots) throw new GameError('This game has no computer players');
@@ -298,8 +303,7 @@ export class Room {
     this.requireHost(player);
     this.requireWaiting();
     if (this.seats.length <= this.meta.players[0]) throw new GameError(`This game needs at least ${this.meta.players[0]} players`);
-    const seat = this.seats[index];
-    if (!seat) throw new GameError('No such seat');
+    const seat = this.seatAt(index);
     if (seat.kind === 'human') {
       if (seat.playerId === player.id) throw new GameError('You cannot remove your own seat');
       this.spectators.add(seat.playerId);
@@ -397,7 +401,8 @@ export class Room {
       this.hub.lobbyChanged();
       return;
     }
-    const humans = [...this.humanIds()];
+    // Wait for everyone who is still at the table; players who dropped out keep their seat.
+    const humans = [...this.humanIds()].filter((id) => this.isViewing(id) || id === player.id);
     if (humans.every((id) => this.rematch.has(id))) {
       // Rotate seats so someone else moves first (and colours swap in two-player games).
       if (this.seats.length > 1) this.seats.push(this.seats.shift());

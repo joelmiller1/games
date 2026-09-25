@@ -219,3 +219,16 @@ test('identity secrets are enforced', async () => {
   a.close();
   b.close();
 });
+
+test('seat indexes from clients are validated', async () => {
+  const host = await new Client('Ivy').connect();
+  const { code } = await host.request({ t: 'room.create', game: 'yahtzee', mode: 'online', seats: 3 });
+  await host.request({ t: 'room.join', code });
+  for (const seat of ['__proto__', -1, 1.5, 99, '1']) {
+    await assert.rejects(host.request({ t: 'room.seat', code, seat, kind: 'bot', level: 'easy' }), /No such seat/);
+  }
+  await host.request({ t: 'room.seat', code, seat: 1, kind: 'bot', level: 'easy' });
+  const room = await host.waitRoom((r) => r.seats[1].kind === 'bot');
+  assert.equal(room.seats.length, 3);
+  host.close();
+});
