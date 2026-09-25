@@ -1,0 +1,20 @@
+{
+  "name": "arcade",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A LAN game arcade: Yahtzee, Chess, Checkers, Connect 4, Battleship, Tic-Tac-Toe and Pinball. Single player vs the computer, pass-and-play, or multiplayer across your local network.",
+  "type": "module",
+  "main": "server/index.js",
+  "engines": {
+    "node": ">=20.10"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch-path=server --watch-path=shared server/index.js",
+    "test": "node --test \"test/**/*.test.js\"",
+    "check": "node scripts/check-syntax.js"
+  },
+  "dependencies": {
+    "ws": "^8.21.3"
+  }
+}
