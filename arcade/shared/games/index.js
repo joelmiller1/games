@@ -9,7 +9,7 @@ import * as reversi from './reversi.js';
 import * as mancala from './mancala.js';
 import * as dotsboxes from './dotsboxes.js';
 import * as mastermind from './mastermind.js';
-import { pinball, tetris, asteroids, snake, minesweeper, blocks, breakout, g2048 } from './arcade.js';
+import { pinball, tetris, asteroids, snake, minesweeper, breakout, g2048, bejeweled } from './arcade.js';
 
 export const ENGINES = {
   yahtzee,
@@ -27,7 +27,7 @@ export const ENGINES = {
   asteroids,
   snake,
   minesweeper,
-  blocks,
   breakout,
   '2048': g2048,
+  bejeweled,
 };

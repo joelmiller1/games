@@ -198,7 +198,7 @@ test('asteroids: an idle ship eventually loses all its lives', () => {
 
 // ---- 2048 ----
 import { Game2048 } from '../public/js/arcade/g2048-core.js';
-import { FallingBlocks, COLS as FB_COLS, ROWS as FB_ROWS, HIDDEN as FB_HIDDEN } from '../public/js/arcade/blocks-core.js';
+import { Match3, SIZE as BJ_SIZE } from '../public/js/arcade/bejeweled-core.js';
 import { Breakout, LEVELS as BO_LEVELS } from '../public/js/arcade/breakout-core.js';
 
 function board2048(values) {
@@ -245,52 +245,152 @@ test('2048: the same seed and moves give the same game; reaching 2048 is flagged
   assert.equal(g.best, 2048);
 });
 
-// ---- Falling Blocks ----
+// ---- Bejeweled ----
 
-test('falling blocks: lines of three in any direction clear, and falling jewels chain', () => {
-  const g = new FallingBlocks({ seed: 3 });
-  g.piece = null;
-  const B = FB_ROWS - 1;
-  // A diagonal of reds; when they go, the cyan above the first red falls into a row of cyans.
-  const set = (x, y, c) => (g.board[y][x] = c);
-  set(0, B, 0);
-  set(1, B - 1, 0);
-  set(2, B - 2, 0); // red diagonal
-  set(1, B, 3);
-  set(2, B, 3);
-  set(2, B - 1, 1);
-  set(0, B - 1, 3); // drops to (0, B) and completes the bottom row of cyans
-  const m = g.findMatches().sort((a, b) => a - b);
-  assert.deepEqual(m, [B * FB_COLS + 0, (B - 1) * FB_COLS + 1, (B - 2) * FB_COLS + 2].sort((a, b) => a - b));
-  g.drain();
-  g.resolve();
-  assert.equal(g.phase, 'clearing');
-  for (let t = 0; t < 3; t += 1 / 60) g.update(1 / 60);
-  const clears = g.drain().filter((e) => e.type === 'clear');
-  assert.ok(g.jewels >= 6, `cleared ${g.jewels}`);
-  assert.ok(clears.some((c) => c.chain === 2), 'the second clear is a chain');
-  assert.ok(g.piece, 'play carries on with a new piece');
+const at = (r, c) => r * BJ_SIZE + c;
+
+/**
+ * A board of colours 2–6 where no two neighbours match, so it has no lines and no moves.
+ * `layout` puts other gems on it: cell -> colour, or [colour, special].
+ */
+function gems(layout = {}, seed = 1, mode = 'classic') {
+  const g = new Match3({ seed, mode });
+  g.board = Array.from({ length: BJ_SIZE * BJ_SIZE }, (_, i) => {
+    const v = layout[i] ?? 2 + ((i % BJ_SIZE) + 2 * Math.floor(i / BJ_SIZE)) % 5;
+    return Array.isArray(v) ? g.gem(v[0], v[1]) : g.gem(v);
+  });
+  return g;
+}
+
+const sorted = (cells) => [...cells].sort((a, b) => a - b);
+const firstClear = (res) => res.steps.find((s) => s.type === 'clear');
+const THREE = { [at(7, 0)]: 0, [at(7, 1)]: 0, [at(6, 2)]: 0 }; // one move: drop the 0 into row 7
+
+test('bejeweled: a new board has no lines but has a move, and the same seed deals the same gems', () => {
+  const colours = (g) => g.board.map((x) => x.color).join('');
+  assert.equal(colours(new Match3({ seed: 7 })), colours(new Match3({ seed: 7 })));
+  assert.notEqual(colours(new Match3({ seed: 8 })), colours(new Match3({ seed: 7 })));
+  for (let seed = 1; seed <= 40; seed++) {
+    const g = new Match3({ seed });
+    assert.equal(g.groups().length, 0, `seed ${seed} starts with a line`);
+    assert.ok(g.findMoves().length > 0, `seed ${seed} has no move`);
+  }
+  assert.equal(gems().hasMoves(), false);
+  assert.equal(gems().hint(), null);
 });
 
-test('falling blocks: cycling, moving, and overflowing the well', () => {
-  const g = new FallingBlocks({ seed: 4 });
-  const [a, b, c] = g.piece.jewels;
-  g.cycle(1);
-  assert.deepEqual(g.piece.jewels, [c, a, b]);
-  g.cycle(-1);
-  assert.deepEqual(g.piece.jewels, [a, b, c]);
-  assert.ok(g.move(-1));
-  assert.ok(g.move(-1));
-  assert.equal(g.move(-1), false, 'the wall stops it');
-  const same = new FallingBlocks({ seed: 4 });
-  assert.deepEqual(same.next, g.next, 'same seed, same jewels');
-  // Fill the spawn column (no matches possible: alternating colours) until it overflows.
-  const h = new FallingBlocks({ seed: 5 });
-  for (let y = FB_HIDDEN + 1; y < FB_ROWS; y++) h.board[y][2] = y % 2 ? 1 : 2;
-  h.piece.jewels = [3, 4, 5];
-  h.hardDrop();
-  for (let t = 0; t < 2; t += 1 / 60) h.update(1 / 60);
-  assert.ok(h.over);
+test('bejeweled: a swap that lines up three clears and refills; any other swap is undone', () => {
+  const g = gems(THREE);
+  assert.deepEqual(g.findMoves(), [[at(6, 2), at(7, 2)]]);
+  assert.deepEqual(g.hint(), [at(6, 2), at(7, 2)]);
+  const before = g.board.map((x) => x.id);
+  const bad = g.swap(at(0, 0), at(0, 1));
+  assert.equal(bad.valid, false);
+  assert.deepEqual(bad.steps.map((s) => s.type), ['swap', 'swapback']);
+  assert.deepEqual(g.board.map((x) => x.id), before, 'the board is unchanged');
+  assert.equal(g.swap(at(0, 0), at(0, 2)), null, 'only neighbours swap');
+  assert.equal(g.moves, 0);
+
+  const res = g.swap(at(6, 2), at(7, 2));
+  assert.equal(res.valid, true);
+  const clear = firstClear(res);
+  assert.deepEqual(sorted(clear.cells), [at(7, 0), at(7, 1), at(7, 2)]);
+  assert.equal(clear.points, 50);
+  assert.deepEqual(clear.created, []);
+  const fall = res.steps.find((s) => s.type === 'fall');
+  assert.equal(fall.spawns.length, 3, 'three new gems drop in');
+  assert.ok(fall.spawns.every((s) => s.fromRow < 0));
+  assert.equal(g.moves, 1);
+  assert.ok(g.score >= 50);
+  assert.ok(g.board.every(Boolean), 'the board is full again');
+  assert.equal(g.groups().length, 0, 'nothing is left lined up');
+});
+
+test('bejeweled: four in a row makes a flame gem, five a hypercube and an L a star gem', () => {
+  const four = firstClear(gems({ ...THREE, [at(7, 3)]: 0 }).swap(at(6, 2), at(7, 2)));
+  assert.deepEqual(four.created.map(({ cell, color, special }) => ({ cell, color, special })), [{ cell: at(7, 2), color: 0, special: 'flame' }]);
+  assert.deepEqual(sorted(four.cells), [at(7, 0), at(7, 1), at(7, 3)], 'the new gem takes the square the gem was moved to');
+  assert.equal(four.points, 100);
+
+  const five = firstClear(gems({ ...THREE, [at(7, 3)]: 0, [at(7, 4)]: 0 }).swap(at(6, 2), at(7, 2)));
+  assert.equal(five.created[0].special, 'cube');
+  assert.equal(five.created[0].color, null);
+
+  const ell = gems({ [at(6, 2)]: 0, [at(6, 3)]: 0, [at(5, 1)]: 0, [at(4, 1)]: 0, [at(7, 1)]: 0 });
+  const star = firstClear(ell.swap(at(7, 1), at(6, 1)));
+  assert.deepEqual(star.created.map((c) => [c.cell, c.special]), [[at(6, 1), 'star']]);
+  assert.equal(star.points, 150);
+});
+
+test('bejeweled: flame gems explode, star gems clear a row and column, hypercubes take a colour', () => {
+  const line = { [at(4, 3)]: 0, [at(3, 5)]: 0 }; // swapping (3,5) down lines up (4,3) (4,4) (4,5)
+  const flame = firstClear(gems({ ...line, [at(4, 4)]: [0, 'flame'] }).swap(at(3, 5), at(4, 5)));
+  assert.deepEqual(flame.blasts.map((b) => [b.cell, b.kind]), [[at(4, 4), 'flame']]);
+  assert.deepEqual(sorted(flame.cells), sorted([3, 4, 5].flatMap((r) => [at(r, 3), at(r, 4), at(r, 5)])));
+  assert.equal(flame.points, 50 + 6 * 20);
+
+  const star = firstClear(gems({ ...line, [at(4, 4)]: [0, 'star'] }).swap(at(3, 5), at(4, 5)));
+  assert.equal(star.blasts[0].kind, 'star');
+  assert.equal(star.cells.length, 15, 'row 4 and column 4');
+  assert.ok(star.cells.includes(at(4, 0)) && star.cells.includes(at(0, 4)) && star.cells.includes(at(7, 4)));
+
+  const g = gems({ [at(2, 2)]: [null, 'cube'] });
+  const colour = g.board[at(2, 3)].color;
+  const count = g.board.filter((x) => x.color === colour).length;
+  const res = g.swap(at(2, 2), at(2, 3));
+  assert.equal(res.valid, true, 'a hypercube swap needs no line');
+  assert.deepEqual(res.steps.slice(0, 3).map((s) => s.type), ['swap', 'cube', 'clear']);
+  assert.equal(res.steps[1].color, colour);
+  assert.equal(res.steps[2].cells.length, count + 1, 'every gem of that colour, and the cube');
+
+  const two = gems({ [at(2, 2)]: [null, 'cube'], [at(2, 3)]: [null, 'cube'] });
+  assert.equal(firstClear(two.swap(at(2, 2), at(2, 3))).cells.length, BJ_SIZE * BJ_SIZE, 'two hypercubes clear the board');
+});
+
+test('bejeweled: gems that fall into a line cascade for more points', () => {
+  // Clearing row 7 drops the 1s at (6,1) and (6,2) next to the 1 at (7,3).
+  const g = gems({ [at(7, 1)]: 0, [at(7, 2)]: 0, [at(6, 0)]: 0, [at(6, 1)]: 1, [at(6, 2)]: 1, [at(7, 3)]: 1 });
+  const res = g.swap(at(6, 0), at(7, 0));
+  const clears = res.steps.filter((s) => s.type === 'clear');
+  assert.ok(clears.length >= 2);
+  assert.equal(clears[1].cascade, 2);
+  for (const c of [at(7, 1), at(7, 2), at(7, 3)]) assert.ok(clears[1].cells.includes(c));
+  assert.ok(clears[1].points >= 100, 'the second step of a cascade counts double');
+  assert.ok(g.bestCascade >= 2);
+});
+
+test('bejeweled: filling the bar goes up a level, and every level multiplies the points', () => {
+  const g = gems(THREE);
+  g.progress = g.goal() - 10;
+  const res = g.swap(at(6, 2), at(7, 2));
+  const up = res.steps.find((s) => s.type === 'level');
+  assert.deepEqual({ level: up.level, progress: up.progress, goal: up.goal }, { level: 2, progress: 40, goal: 1500 });
+  assert.ok(g.level >= 2);
+  const h = gems(THREE);
+  h.level = 3;
+  assert.equal(firstClear(h.swap(at(6, 2), at(7, 2))).points, 150);
+});
+
+test('bejeweled: with no move left, classic ends and blitz reshuffles', () => {
+  const classic = gems(THREE);
+  classic.hasMoves = () => false;
+  const res = classic.swap(at(6, 2), at(7, 2));
+  assert.equal(res.steps.at(-1).type, 'over');
+  assert.equal(classic.over, true);
+  assert.equal(classic.swap(at(0, 0), at(0, 1)), null, 'no more swaps');
+
+  const blitz = gems(THREE, 1, 'blitz');
+  let stuck = true;
+  blitz.hasMoves = function () {
+    if (stuck) return (stuck = false);
+    return Match3.prototype.hasMoves.call(this);
+  };
+  const shuffle = blitz.swap(at(6, 2), at(7, 2)).steps.at(-1);
+  assert.equal(shuffle.type, 'shuffle');
+  assert.equal(blitz.over, false);
+  assert.deepEqual(shuffle.gems.map((x) => x.id), blitz.board.map((x) => x.id));
+  assert.equal(blitz.groups().length, 0);
+  assert.ok(blitz.findMoves().length > 0, 'the shuffled board has a move');
 });
 
 // ---- Breakout ----

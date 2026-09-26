@@ -14,9 +14,9 @@ export const GAME_MODULES = {
   asteroids: () => import('../arcade/asteroids.js'),
   snake: () => import('../arcade/snake.js'),
   minesweeper: () => import('../arcade/minesweeper.js'),
-  blocks: () => import('../arcade/blocks.js'),
   breakout: () => import('../arcade/breakout.js'),
   2048: () => import('../arcade/g2048.js'),
+  bejeweled: () => import('../arcade/bejeweled.js'),
 };
 
 function cleanName(n, i) {
@@ -155,7 +155,7 @@ export function mount(el, { game: id }, query) {
     fill(
       overlay,
       h('h2', first),
-      h('p', { class: 'muted' }, names.length > 1 && turn === 0 ? `${names.length} players take turns, one game each, with the same ${{ minesweeper: 'minefield', tetris: 'pieces', blocks: 'jewels', 2048: 'tiles', breakout: 'wall' }[id] || 'start'}.` : mod.info.intro),
+      h('p', { class: 'muted' }, names.length > 1 && turn === 0 ? `${names.length} players take turns, one game each, with the same ${{ minesweeper: 'minefield', tetris: 'pieces', 2048: 'tiles', bejeweled: 'gems', breakout: 'wall' }[id] || 'start'}.` : mod.info.intro),
       variant ? h('p', h('span', { class: 'chip' }, variant)) : null,
       h('div', { class: 'desktop-only' }, keysHelp(mod.info)),
       h('p', { class: 'muted small touch-only' }, mod.info.touch),

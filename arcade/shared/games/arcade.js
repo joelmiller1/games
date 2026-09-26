@@ -106,6 +106,6 @@ export const tetris = scoreAttack('tetris');
 export const asteroids = scoreAttack('asteroids');
 export const snake = scoreAttack('snake');
 export const minesweeper = scoreAttack('minesweeper');
-export const blocks = scoreAttack('blocks');
 export const breakout = scoreAttack('breakout');
 export const g2048 = scoreAttack('2048');
+export const bejeweled = scoreAttack('bejeweled');
