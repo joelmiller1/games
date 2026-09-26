@@ -23,9 +23,9 @@ const GAME_UI = {
   asteroids: () => import('../games/arcade.js'),
   snake: () => import('../games/arcade.js'),
   minesweeper: () => import('../games/arcade.js'),
-  blocks: () => import('../games/arcade.js'),
   breakout: () => import('../games/arcade.js'),
   2048: () => import('../games/arcade.js'),
+  bejeweled: () => import('../games/arcade.js'),
 };
 
 export function mount(el, { code }) {

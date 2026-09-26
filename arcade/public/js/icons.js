@@ -185,25 +185,30 @@ const GAME_ART = {
     s('path', { d: 'M48 42c0-3 2-5 4-6', stroke: '#65a30d', 'stroke-width': 2, fill: 'none', 'stroke-linecap': 'round' }),
     s('circle', { cx: 45.5, cy: 46.5, r: 2, fill: '#fff', opacity: 0.6 }),
   ],
-  blocks: () => {
-    const gem = (cx, cy, shape, color) => {
-      if (shape === 'circle') return s('circle', { cx, cy, r: 7.5, fill: color, stroke: 'rgba(0,0,0,0.35)', 'stroke-width': 1.5 });
-      const pts = {
-        diamond: [[0, -9], [8, 0], [0, 9], [-8, 0]],
-        tri: [[0, -8.5], [8.5, 6.5], [-8.5, 6.5]],
-        hex: [0, 1, 2, 3, 4, 5].map((k) => [Math.cos((Math.PI / 3) * k + Math.PI / 6) * 8.5, Math.sin((Math.PI / 3) * k + Math.PI / 6) * 8.5]),
-      }[shape];
-      return s('path', { d: 'M' + pts.map(([x, y]) => `${(cx + x).toFixed(1)} ${(cy + y).toFixed(1)}`).join('L') + 'z', fill: color, stroke: 'rgba(0,0,0,0.35)', 'stroke-width': 1.5 });
+  bejeweled: () => {
+    const d = (pts) => 'M' + pts.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join('L') + 'z';
+    const poly = (cx, cy, n, rot, r, sx) => Array.from({ length: n }, (_, k) => [cx + Math.cos(rot + (Math.PI * 2 * k) / n) * r * sx, cy + Math.sin(rot + (Math.PI * 2 * k) / n) * r]);
+    // A cut gem: the outline in its colour and a lighter table in the middle.
+    const gem = (cx, cy, cut, color, table) => {
+      if (cut === 'round') return [s('circle', { cx, cy, r: 7.5, fill: color, stroke: 'rgba(0,0,0,0.35)', 'stroke-width': 1.2 }), s('circle', { cx, cy, r: 3.8, fill: table })];
+      const [n, rot, r, sx, dy] = { square: [4, Math.PI / 4, 9.2, 1, 0], diamond: [4, -Math.PI / 2, 9.2, 0.78, 0], emerald: [8, Math.PI / 8, 8.6, 0.8, 0], pentagon: [5, -Math.PI / 2, 8.6, 1, 0.8], triangle: [3, -Math.PI / 2, 9.6, 1.08, 2.3], hexagon: [6, 0, 8.4, 1, 0] }[cut];
+      return [
+        s('path', { d: d(poly(cx, cy + dy, n, rot, r, sx)), fill: color, stroke: 'rgba(0,0,0,0.35)', 'stroke-width': 1.2, 'stroke-linejoin': 'round' }),
+        s('path', { d: d(poly(cx, cy + dy, n, rot, r * 0.5, sx)), fill: table }),
+      ];
     };
     return [
-      s('rect', { x: 11, y: 5, width: 22, height: 57, rx: 5, fill: 'rgba(0,0,0,0.22)' }),
-      gem(22, 16, 'circle', '#ef4444'),
-      gem(22, 34, 'diamond', '#facc15'),
-      gem(22, 52, 'hex', '#22d3ee'),
-      gem(40, 52, 'tri', '#3b82f6'),
-      gem(55, 52, 'tri', '#3b82f6'),
-      gem(47.5, 36, 'tri', '#3b82f6'),
-      s('path', { d: 'M52 10l2 5 5 2-5 2-2 5-2-5-5-2 5-2z', fill: '#fff' }),
+      s('rect', { x: 2, y: 22, width: 60, height: 20, rx: 7, fill: '#fef9c3', opacity: 0.3 }),
+      gem(12, 12, 'square', '#ef4444', '#fca5a5'),
+      gem(32, 12, 'emerald', '#22c55e', '#86efac'),
+      gem(52, 12, 'pentagon', '#3b82f6', '#93c5fd'),
+      gem(12, 32, 'diamond', '#facc15', '#fef08a'),
+      gem(32, 32, 'diamond', '#facc15', '#fef08a'),
+      gem(52, 32, 'diamond', '#facc15', '#fef08a'),
+      gem(12, 52, 'triangle', '#a855f7', '#d8b4fe'),
+      gem(32, 52, 'round', '#e2e8f0', '#ffffff'),
+      gem(52, 52, 'hexagon', '#f97316', '#fdba74'),
+      s('path', { d: 'M58 17l1.5 3.6 3.6 1.5-3.6 1.5-1.5 3.6-1.5-3.6-3.6-1.5 3.6-1.5z', fill: '#fff' }),
     ];
   },
   breakout: () => {

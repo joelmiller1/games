@@ -68,6 +68,9 @@ function noise({ dur = 0.2, vol = 0.3, freq = 1000, type = 'lowpass', q = 1, del
 const arp = (notes, { type = 'triangle', step = 0.11, dur = 0.25, vol = 0.18 } = {}) =>
   notes.forEach((f, i) => tone({ freq: f, type, dur, vol, delay: i * step }));
 
+// Match-three chime: every step of a cascade plays it a little higher.
+const chime = (k) => arp([659, 784, 988].map((f) => f * 2 ** (k / 6)), { type: 'triangle', step: 0.04, dur: 0.18, vol: 0.11 });
+
 const SFX = {
   click: () => tone({ freq: 660, type: 'triangle', dur: 0.05, vol: 0.12 }),
   place: () => {
@@ -159,6 +162,18 @@ const SFX = {
   },
   reveal: () => tone({ freq: 1200 + Math.random() * 200, type: 'sine', dur: 0.03, vol: 0.05 }),
   flag: () => tone({ freq: 760, slide: 1100, type: 'triangle', dur: 0.06, vol: 0.12 }),
+  swish: () => noise({ dur: 0.12, vol: 0.14, freq: 2400, type: 'bandpass', q: 1.4 }),
+  buzz: () => tone({ freq: 150, type: 'square', dur: 0.14, vol: 0.06 }),
+  zap: () => {
+    noise({ dur: 0.45, vol: 0.16, freq: 3200, type: 'highpass', q: 0.7 });
+    tone({ freq: 1800, slide: 140, type: 'sawtooth', dur: 0.42, vol: 0.06 });
+  },
+  match1: () => chime(0),
+  match2: () => chime(1),
+  match3: () => chime(2),
+  match4: () => chime(3),
+  match5: () => chime(4),
+  match6: () => chime(5),
 };
 
 export function play(name, minGapMs = 25) {
