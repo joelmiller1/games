@@ -25,7 +25,11 @@ export function create(ctx) {
   let room = null;
   let view = null;
   let seat = null;
+  // The guess being built: one entry per slot (a colour index or null), filled in any order.
   let current = [];
+  let cursor = 0; // the slot the next colour goes into
+  let drag = null;
+  let suppressClick = false;
   let shownSeat = null;
   let showCode = false;
   let lastCount = -1;
@@ -37,56 +41,184 @@ export function create(ctx) {
   const canGuess = () => room.phase === 'playing' && seat !== null && view.phase === 'playing' && view.turn === seat && room.actors.includes(seat);
   const canSet = () => room.phase === 'playing' && seat !== null && view.phase === 'setup' && !view.ready[seat];
 
-  function add(c) {
-    if (current.length >= view.pegs) return;
-    current = [...current, c];
+  function resetGuess() {
+    current = Array(view.pegs).fill(null);
+    cursor = 0;
+  }
+
+  function ensureSlots() {
+    if (current.length !== view.pegs) resetGuess();
+  }
+
+  const placed = () => current.filter((c) => c !== null).length;
+  const complete = () => current.length === view.pegs && placed() === view.pegs;
+
+  /** The next empty slot after `from`, wrapping round (or `from` itself when the row is full). */
+  function nextEmpty(from) {
+    for (let k = 1; k <= view.pegs; k++) {
+      const i = (from + k) % view.pegs;
+      if (current[i] === null) return i;
+    }
+    return from;
+  }
+
+  function put(i, c) {
+    ensureSlots();
+    current = current.slice();
+    current[i] = c;
+    cursor = nextEmpty(i);
     ctx.play('peg');
     render();
   }
 
-  function removeAt(i) {
-    current = current.filter((_, k) => k !== i);
+  function clearSlot(i) {
+    current = current.slice();
+    current[i] = null;
+    cursor = i;
+    render();
+  }
+
+  /** Tapping an empty slot selects it; tapping a peg takes it out, leaving the others in place. */
+  function tapSlot(i) {
+    if (current[i] !== null) clearSlot(i);
+    else {
+      cursor = i;
+      render();
+    }
+  }
+
+  function swap(a, b) {
+    current = current.slice();
+    [current[a], current[b]] = [current[b], current[a]];
+    cursor = current.indexOf(null) >= 0 ? current.indexOf(null) : b;
+    ctx.play('peg');
     render();
   }
 
   function submit() {
-    if (current.length !== view.pegs) return;
+    if (!complete()) return;
     const code = current.slice();
     if (canSet()) {
       ctx.act({ type: 'setCode', code }, seat).then(() => ctx.play('join')).catch(() => {});
-      current = [];
+      resetGuess();
     } else if (canGuess()) {
       ctx.act({ type: 'guess', code }, seat).catch(() => {});
-      current = [];
+      resetGuess();
     }
     render();
   }
 
+  // ---- drag and drop: a colour from the palette onto any slot, or a peg to another slot ----
+  function dragStart(e, source) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    drag = { ...source, id: e.pointerId, x: e.clientX, y: e.clientY, moved: false, ghost: null, over: null, pending: false };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* pointer already gone */
+    }
+  }
+
+  function dragMove(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 8) return;
+    if (!drag.moved) {
+      drag.moved = true;
+      drag.ghost = peg(drag.color, { cls: 'mm-ghost' });
+      document.body.append(drag.ghost);
+    }
+    drag.ghost.style.left = `${e.clientX}px`;
+    drag.ghost.style.top = `${e.clientY}px`;
+    const over = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.mm-current .mm-slot') || null;
+    if (over !== drag.over) {
+      drag.over?.classList.remove('drop');
+      over?.classList.add('drop');
+      drag.over = over;
+    }
+  }
+
+  function dragEnd(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag;
+    drag = null;
+    d.ghost?.remove();
+    d.over?.classList.remove('drop');
+    if (!d.moved || e.type === 'pointercancel') {
+      // A plain tap: the click handler does the work.
+      if (d.pending) render();
+      return;
+    }
+    // The browser may still send a click to the button the drag started on: ignore it.
+    suppressClick = true;
+    setTimeout(() => (suppressClick = false), 0);
+    const target = d.over ? Number(d.over.dataset.i) : null;
+    if (target === null) {
+      if (d.from !== null) clearSlot(d.from); // dragged off the row: take the peg out
+      else if (d.pending) render();
+    } else if (d.from === null) put(target, d.color);
+    else if (d.from !== target) swap(d.from, target);
+    else if (d.pending) render();
+  }
+
+  const dragHandlers = (source) => ({
+    onPointerdown: (e) => dragStart(e, source()),
+    onPointermove: dragMove,
+    onPointerup: dragEnd,
+    onPointercancel: dragEnd,
+  });
+
   function composer(title, submitLabel, extra = []) {
+    ensureSlots();
     const slots = h(
       'div',
-      { class: 'mm-row mm-current' },
-      Array.from({ length: view.pegs }, (_, i) =>
-        h('button', { class: 'mm-slot', type: 'button', 'aria-label': current[i] !== undefined ? `Remove ${PEG_NAMES[current[i]]}` : 'Empty slot', onClick: () => current[i] !== undefined && removeAt(i) }, peg(current[i])),
+      { class: 'mm-row mm-current', role: 'group', 'aria-label': 'Your guess' },
+      current.map((c, i) =>
+        h(
+          'button',
+          {
+            class: ['mm-slot', i === cursor && 'sel'],
+            type: 'button',
+            dataset: { i: String(i) },
+            'aria-label': c === null ? `Slot ${i + 1}, empty${i === cursor ? ', selected' : ''}` : `Slot ${i + 1}, ${PEG_NAMES[c]}: tap to remove`,
+            'aria-pressed': String(i === cursor),
+            onClick: () => !suppressClick && tapSlot(i),
+            ...(c === null ? {} : dragHandlers(() => ({ color: current[i], from: i }))),
+          },
+          peg(c),
+        ),
       ),
     );
     const palette = h(
       'div',
       { class: 'mm-palette', role: 'group', 'aria-label': 'Colours' },
-      Array.from({ length: view.colors }, (_, c) => h('button', { class: 'mm-color', type: 'button', style: { '--c': PEG_COLORS[c] }, 'aria-label': PEG_NAMES[c], onClick: () => add(c) }, h('span', String(c + 1)))),
+      Array.from({ length: view.colors }, (_, c) =>
+        h(
+          'button',
+          {
+            class: 'mm-color',
+            type: 'button',
+            style: { '--c': PEG_COLORS[c] },
+            'aria-label': `${PEG_NAMES[c]} into slot ${cursor + 1}`,
+            onClick: () => !suppressClick && put(cursor, c),
+            ...dragHandlers(() => ({ color: c, from: null })),
+          },
+          h('span', String(c + 1)),
+        ),
+      ),
     );
     return h(
       'div',
       { class: 'mm-composer' },
       h('div', { class: 'mm-title' }, title),
       slots,
+      h('div', { class: 'mm-hint' }, 'Tap a slot, then a colour, or drag a colour onto any slot.'),
       palette,
       h(
         'div',
         { class: 'row', style: { justifyContent: 'center' } },
         ...extra,
-        h('button', { class: 'btn btn-sm btn-ghost', type: 'button', disabled: !current.length, onClick: () => ((current = []), render()) }, 'Clear'),
-        h('button', { class: 'btn btn-primary', type: 'button', disabled: current.length !== view.pegs, onClick: submit }, icon('check', 16), submitLabel),
+        h('button', { class: 'btn btn-sm btn-ghost', type: 'button', disabled: !placed(), onClick: () => (resetGuess(), render()) }, 'Clear'),
+        h('button', { class: 'btn btn-primary', type: 'button', disabled: !complete(), onClick: submit }, icon('check', 16), submitLabel),
       ),
     );
   }
@@ -150,6 +282,11 @@ export function create(ctx) {
 
   function render() {
     if (!view) return;
+    if (drag) {
+      // Rebuilding the composer mid-drag would drop the peg being dragged: wait for the drop.
+      drag.pending = true;
+      return;
+    }
     if (localPair() && room.phase === 'playing' && view.phase !== 'over' && shownSeat !== seat) return renderPass();
     const over = view.phase === 'over';
     const solo = view.players === 1;
@@ -161,7 +298,20 @@ export function create(ctx) {
       if (canSet()) {
         parts.push(
           composer(`Set a secret code for ${oppName}`, 'Lock in code', [
-            h('button', { class: 'btn btn-sm', type: 'button', onClick: () => ((current = Array.from({ length: view.pegs }, () => Math.floor(Math.random() * view.colors))), render()) }, icon('shuffle', 16), 'Random'),
+            h(
+              'button',
+              {
+                class: 'btn btn-sm',
+                type: 'button',
+                onClick: () => {
+                  current = Array.from({ length: view.pegs }, () => Math.floor(Math.random() * view.colors));
+                  cursor = 0;
+                  render();
+                },
+              },
+              icon('shuffle', 16),
+              'Random',
+            ),
           ]),
         );
       } else if (seat !== null) {
@@ -195,18 +345,25 @@ export function create(ctx) {
     const lines = [h('div', { class: 'panel-title' }, 'Code')];
     lines.push(h('p', { class: 'small', style: { margin: '0 0 8px' } }, `${view.pegs} pegs, ${view.colors} colours, repeats allowed. ${view.maxGuesses} guesses.`));
     lines.push(h('div', { class: 'mm-legend small' }, h('span', h('span', { class: 'mm-pins' }, h('i', { class: 'b' })), ' right colour, right place'), h('span', h('span', { class: 'mm-pins' }, h('i', { class: 'w' })), ' right colour, wrong place')));
-    lines.push(h('p', { class: 'muted small', style: { margin: '8px 0 0' } }, 'Keys: 1–' + view.colors + ' add a colour, Backspace removes, Enter guesses.'));
+    lines.push(h('p', { class: 'muted small', style: { margin: '8px 0 0' } }, `Keys: 1–${view.colors} place a colour, ← → choose the slot, Backspace removes, Enter guesses.`));
     fill(side, ...lines);
   }
 
   function onKey(e) {
     if (!view || e.target.closest('input, textarea, select')) return;
     if (!canGuess() && !canSet()) return;
+    ensureSlots();
     const n = Number(e.key);
-    if (n >= 1 && n <= view.colors) add(n - 1);
-    else if (e.key === 'Backspace') {
-      if (current.length) removeAt(current.length - 1);
-    } else if (e.key === 'Enter' && !e.target.closest('button')) submit();
+    const pegs = view.pegs;
+    if (n >= 1 && n <= view.colors) put(cursor, n - 1);
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      cursor = (cursor + (e.key === 'ArrowLeft' ? pegs - 1 : 1)) % pegs;
+      render();
+    } else if (e.key === 'Backspace') {
+      // Like a text field: clear this slot, or the one before it if this one is empty.
+      clearSlot(current[cursor] === null ? (cursor + pegs - 1) % pegs : cursor);
+    } else if (e.key === 'Delete') clearSlot(cursor);
+    else if (e.key === 'Enter' && !e.target.closest('button')) submit();
     else return;
     e.preventDefault();
   }
@@ -221,6 +378,10 @@ export function create(ctx) {
       view = v;
       seat = st;
       if (seatChanged) current = [];
+      if (drag && !canGuess() && !canSet()) {
+        drag.ghost?.remove();
+        drag = null;
+      }
       const count = v.guesses.reduce((a, g) => a + g.length, 0);
       if (lastCount >= 0 && count > lastCount) ctx.play('pins');
       lastCount = count;

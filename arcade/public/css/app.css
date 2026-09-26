@@ -3025,15 +3025,43 @@ kbd {
 }
 
 .mm-slot {
-  padding: 0;
+  padding: 3px;
   border: 0;
+  border-radius: 50%;
   background: none;
   cursor: pointer;
+  touch-action: none;
+  transition: box-shadow 0.12s ease;
 }
 
 .mm-slot .mm-peg {
+  display: block;
   width: 38px;
   height: 38px;
+}
+
+.mm-slot.sel {
+  box-shadow: 0 0 0 2px #fde047, 0 0 12px rgba(253, 224, 71, 0.45);
+}
+
+.mm-slot.drop {
+  box-shadow: 0 0 0 3px #86efac, 0 0 14px rgba(134, 239, 172, 0.6);
+}
+
+.mm-hint {
+  text-align: center;
+  font-size: 0.78rem;
+  opacity: 0.75;
+}
+
+.mm-ghost {
+  position: fixed;
+  z-index: 1000;
+  width: 44px;
+  height: 44px;
+  pointer-events: none;
+  transform: translate(-50%, -75%);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.55);
 }
 
 .mm-palette {
@@ -3046,6 +3074,7 @@ kbd {
 
 .mm-color {
   --c: #fff;
+  touch-action: none;
   width: 42px;
   height: 42px;
   border-radius: 50%;
