@@ -1,12 +1,14 @@
-# High scores and win/loss records (a small JSON file). k3s provisions this with its
-# built-in local-path storage class; set storageClassName if you use something else.
+# High scores and win/loss records (a small JSON file). Longhorn replicates the volume across nodes, so the
+# pod can restart on any node if the one it runs on goes down. Clusters without Longhorn can drop
+# storageClassName to use k3s's built-in local-path class, which ties the pod to a single node.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: arcade-data
+  name: arcade-data-longhorn
   labels:
     app.kubernetes.io/name: arcade
 spec:
+  storageClassName: longhorn
   accessModes:
     - ReadWriteOnce
   resources:

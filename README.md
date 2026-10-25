@@ -99,28 +99,54 @@ kubectl apply -k deploy/k8s        # or: sudo k3s kubectl apply -k deploy/k8s
 kubectl -n games get pods,svc
 ```
 
-This creates the `games` namespace, a 256 Mi volume for scores (`local-path`, the k3s default), a single-replica
+This creates the `games` namespace, a 256 Mi [Longhorn](https://longhorn.io) volume for scores, a single-replica
 Deployment with a locked-down security context, a `LoadBalancer` Service and an Ingress.
+
+Longhorn replicates the volume across nodes, and the Deployment tolerates a dead node for only 30 seconds, so if
+the node running the arcade goes down it restarts on another node within about a minute. Without Longhorn, remove
+`storageClassName` from `deploy/k8s/pvc.yaml` to use k3s's built-in `local-path` class instead; the pod is then tied
+to whichever node holds the volume.
 
 ### 3. Play
 
 * **http://&lt;any-node-ip&gt;:8080**. k3s's built-in ServiceLB exposes the Service on every node, so this works
   from phones and laptops with no DNS setup. With MetalLB you get a dedicated IP instead (`kubectl -n games get svc arcade`).
 * **http://games.lan** through Traefik, once `games.lan` resolves to a node (add a record in your router or
-  Pi-hole, or edit the host in `deploy/k8s/ingress.yaml`).
+  Pi-hole, or edit the host in `deploy/k8s/ingress.yaml`). Point it at more than one node, or at a virtual IP,
+  so the name keeps working when one node is down.
 
 Pick a game, choose **Online** and share the link or QR code shown at the table. Anyone on the network can also
 open the home page and join from **Open tables**.
 
 ### Updating
 
-Push to `master`, wait for the workflow, then:
+The image tag is pinned in `deploy/k8s/kustomization.yaml`, so restarts and node failovers never pull a
+different build. Push to `master`, wait for the workflow, then point the tag at the new build and apply:
 
 ```sh
-kubectl -n games rollout restart deployment/arcade
+cd deploy/k8s
+kustomize edit set image ghcr.io/joelmiller1/games:sha-<commit>   # or edit newTag by hand
+kubectl apply -k .
 ```
 
 Tables in progress end when the pod restarts (they live in memory); high scores and records are on the volume and survive.
+
+### Moving scores to Longhorn
+
+Installs from before the Longhorn change keep their scores on a `local-path` volume named `arcade-data`. A
+volume's storage class can't be changed in place, so copy the scores to the new `arcade-data-longhorn` volume
+once (the arcade is down for a minute or two):
+
+```sh
+kubectl -n games scale deployment/arcade --replicas=0
+kubectl -n games apply -f deploy/k8s/pvc.yaml
+kubectl apply -f deploy/k8s/migrate/copy-to-longhorn.yaml
+kubectl -n games wait --for=condition=complete job/arcade-copy-to-longhorn --timeout=5m
+kubectl -n games logs job/arcade-copy-to-longhorn
+kubectl apply -k deploy/k8s
+```
+
+Once the high scores show up again, delete the old volume with `kubectl -n games delete pvc arcade-data`.
 
 ## Configuration
 

@@ -18,6 +18,16 @@ spec:
         app.kubernetes.io/name: arcade
     spec:
       terminationGracePeriodSeconds: 20
+      # Move to another node after 30s instead of the default 5 minutes when this node goes down.
+      tolerations:
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 30
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 30
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -28,7 +38,8 @@ spec:
       containers:
         - name: arcade
           image: ghcr.io/joelmiller1/games:latest
-          imagePullPolicy: Always
+          # The tag is pinned in kustomization.yaml, so a restart never pulls a different build.
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8080
@@ -74,4 +85,4 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: arcade-data
+            claimName: arcade-data-longhorn
