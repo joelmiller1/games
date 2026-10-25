@@ -29,6 +29,8 @@ export function loadConfig(env = process.env) {
     botThreads: int(env.BOT_THREADS, Math.max(1, Math.min(2, cpus - 1)), 0, 16),
     roomIdleMinutes: int(env.ROOM_IDLE_MINUTES, 30, 1),
     maxRooms: int(env.MAX_ROOMS, 300, 1),
+    saveTables: !['0', 'false', 'no', 'off'].includes(String(env.SAVE_TABLES ?? '').toLowerCase()),
+    saveTablesSeconds: int(env.SAVE_TABLES_SECONDS, 5, 1, 3600),
     logLevel: env.LOG_LEVEL || 'info',
     version: env.APP_VERSION || process.env.npm_package_version || '1.0.0',
   };

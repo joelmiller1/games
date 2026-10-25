@@ -517,6 +517,70 @@ export class Room {
     for (const c of this.viewers) this.hub.send(c, { t: 'chat', code: this.code, message: m });
   }
 
+  // ---- saving across restarts ----
+  /** Everything needed to rebuild the table after a restart; viewers and timers are not kept. */
+  toJSON() {
+    return {
+      code: this.code,
+      gameId: this.gameId,
+      mode: this.mode,
+      visibility: this.visibility,
+      options: this.options,
+      hostId: this.hostId,
+      seats: this.seats,
+      spectators: [...this.spectators],
+      phase: this.phase,
+      state: this.state,
+      version: this.version,
+      result: this.result,
+      lastResult: this.lastResult,
+      rematch: [...this.rematch],
+      chat: this.chat,
+      chatSeq: this.chatSeq,
+      gameNo: this.gameNo,
+      createdAt: this.createdAt,
+      lastActive: this.lastActive,
+    };
+  }
+
+  /** Rebuilds a saved table. pausedMs is how long the server was down, taken off any running clock. */
+  static fromJSON(hub, d, pausedMs = 0) {
+    if (!getGame(d.gameId) || !ENGINES[d.gameId]) throw new Error(`unknown game ${d.gameId}`);
+    const room = new Room(hub, d);
+    room.seats = d.seats;
+    room.spectators = new Set(d.spectators);
+    room.phase = d.phase;
+    room.state = d.state;
+    room.version = d.version;
+    room.result = d.result;
+    room.lastResult = d.lastResult;
+    room.rematch = new Set(d.rematch);
+    room.chat = d.chat;
+    room.chatSeq = d.chatSeq;
+    room.gameNo = d.gameNo;
+    room.createdAt = d.createdAt;
+    // Give everyone a full idle period to reconnect.
+    room.lastActive = Date.now();
+    if (pausedMs > 0 && typeof room.state?.clock?.turnStart === 'number') room.state.clock.turnStart += pausedMs;
+    return room;
+  }
+
+  /** Restarts computer players and clocks on a table just rebuilt by fromJSON. */
+  resume() {
+    this.scheduleBot();
+    this.scheduleClock();
+  }
+
+  /** Stops timers before a restart without telling viewers the table closed: it comes back after the restart. */
+  suspend() {
+    if (this.closed) return;
+    this.closed = true;
+    if (this.botTimer) clearTimeout(this.botTimer);
+    this.clearTimers();
+    for (const c of this.viewers) if (c.room === this) c.room = null;
+    this.viewers.clear();
+  }
+
   close(reason) {
     if (this.closed) return;
     this.closed = true;
