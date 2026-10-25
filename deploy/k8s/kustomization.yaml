@@ -9,5 +9,7 @@ resources:
   - service.yaml
   - ingress.yaml
 images:
+  # Pin a published build (sha-<commit> or x.y.z) and bump it to upgrade:
+  #   cd deploy/k8s && kustomize edit set image ghcr.io/joelmiller1/games:sha-<commit>
   - name: ghcr.io/joelmiller1/games
-    newTag: latest
+    newTag: sha-92c7ee8
