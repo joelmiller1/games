@@ -431,9 +431,54 @@ export class Hub {
     return { rooms: this.rooms.size, online, connections: this.conns.size, gamesStarted: this.stats.gamesStarted };
   }
 
-  shutdown() {
+  // ---- saving across restarts ----
+  /** Open tables plus the identities seated or watching at them, as plain JSON (see tables.js). */
+  saveState() {
+    const ids = new Set();
+    for (const room of this.rooms.values()) {
+      if (room.hostId) ids.add(room.hostId);
+      for (const id of room.humanIds()) ids.add(id.startsWith('left:') ? id.slice(5) : id);
+      for (const id of room.spectators) ids.add(id);
+    }
+    const players = [];
+    for (const id of ids) {
+      const p = this.players.get(id);
+      if (p) players.push({ id: p.id, secret: p.secret, name: p.name, color: p.color });
+    }
+    return { version: 1, savedAt: Date.now(), players, rooms: [...this.rooms.values()].map((r) => r.toJSON()) };
+  }
+
+  /** Brings back tables saved by saveState; players reconnect and rejoin them by code. */
+  restore(data) {
+    if (!data || data.version !== 1 || !Array.isArray(data.rooms)) return 0;
+    const pausedMs = Number.isFinite(data.savedAt) ? Math.max(0, Date.now() - data.savedAt) : 0;
+    for (const p of Array.isArray(data.players) ? data.players : []) {
+      if (!ID_RE.test(p?.id || '') || !ID_RE.test(p?.secret || '') || this.players.has(p.id)) continue;
+      this.players.set(p.id, { id: p.id, secret: p.secret, name: cleanName(p.name), color: cleanColor(p.color), conns: new Set() });
+    }
+    let restored = 0;
+    for (const d of data.rooms) {
+      if (this.rooms.size >= this.config.maxRooms) break;
+      try {
+        if (!/^[A-Z]{4}$/.test(d?.code || '') || this.rooms.has(d.code)) continue;
+        const room = Room.fromJSON(this, d, pausedMs);
+        this.rooms.set(room.code, room);
+        room.resume();
+        restored++;
+      } catch (e) {
+        this.log.warn(`could not restore room ${d?.code}: ${e.message}`);
+      }
+    }
+    return restored;
+  }
+
+  /** keepTables: the tables were saved, so pause them instead of telling everyone they closed. */
+  shutdown({ keepTables = false } = {}) {
     clearInterval(this.sweeper);
-    for (const room of this.rooms.values()) room.close('The server is restarting');
+    for (const room of this.rooms.values()) {
+      if (keepTables) room.suspend();
+      else room.close('The server is restarting');
+    }
     for (const c of this.conns) {
       this.send(c, { t: 'server.restart' });
       try {

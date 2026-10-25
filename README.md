@@ -129,7 +129,7 @@ kustomize edit set image ghcr.io/joelmiller1/games:sha-<commit>   # or edit newT
 kubectl apply -k .
 ```
 
-Tables in progress end when the pod restarts (they live in memory); high scores and records are on the volume and survive.
+Open tables survive the restart: the server saves them to the volume every few seconds and on shutdown, and players' browsers reconnect and pick up where they left off. Chess clocks are paused while the server is down.
 
 ### Moving scores to Longhorn
 
@@ -160,6 +160,8 @@ Environment variables (set them in `deploy/k8s/deployment.yaml`):
 | `BOT_THREADS` | CPU count − 1, max 2 | Worker threads for computer players |
 | `ROOM_IDLE_MINUTES` | `30` | Close tables nobody has looked at for this long |
 | `MAX_ROOMS` | `300` | Upper limit on open tables |
+| `SAVE_TABLES` | `true` | Save open tables to `DATA_DIR/arcade-tables.json` and bring them back after a restart; `false` ends them on restart |
+| `SAVE_TABLES_SECONDS` | `5` | How often open tables are saved; a crash loses at most this much play |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` or `silent` |
 
 Health probes answer at `/healthz` and `/readyz` regardless of `BASE_PATH`.

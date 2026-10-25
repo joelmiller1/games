@@ -5,6 +5,7 @@ import { WebSocketServer } from 'ws';
 import { createStatic, SECURITY_HEADERS } from './static.js';
 import { Hub } from './hub.js';
 import { Store } from './store.js';
+import { TableStore } from './tables.js';
 import { BotPool } from './bots.js';
 import { createLogger } from './log.js';
 import { GAMES } from '../shared/games/meta.js';
@@ -15,6 +16,11 @@ export async function createApp(config) {
   await store.load();
   const bots = new BotPool({ size: config.botThreads, log });
   const hub = new Hub({ config, store, bots, log });
+  const tables = new TableStore({ dir: config.dataDir, enabled: config.saveTables && store.writable, log });
+  const restored = hub.restore(await tables.load());
+  if (restored) log.info(`Restored ${restored} open table${restored === 1 ? '' : 's'}`);
+  const autosave = setInterval(() => tables.save(hub.saveState()), config.saveTablesSeconds * 1000);
+  autosave.unref();
   const base = config.basePath;
   let ready = true;
 
@@ -79,6 +85,7 @@ export async function createApp(config) {
     server,
     hub,
     store,
+    tables,
     log,
     listen(port = config.port, host = config.host) {
       return new Promise((resolve) => server.listen(port, host, () => resolve(server.address())));
@@ -86,7 +93,9 @@ export async function createApp(config) {
     async close() {
       ready = false;
       clearInterval(heartbeat);
-      hub.shutdown();
+      clearInterval(autosave);
+      if (tables.enabled) await tables.save(hub.saveState());
+      hub.shutdown({ keepTables: tables.enabled });
       await store.flush();
       await bots.close();
       for (const ws of wss.clients) ws.terminate();
