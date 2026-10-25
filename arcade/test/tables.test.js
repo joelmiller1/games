@@ -174,3 +174,31 @@ test('SAVE_TABLES=false closes tables on restart as before', async () => {
   dan.close();
   await app.close();
 });
+
+test('a running chess clock is paused for the time the server was down', async () => {
+  const { Room } = await import('../server/room.js');
+  const saved = {
+    code: 'ABCD',
+    gameId: 'chess',
+    mode: 'solo',
+    visibility: 'private',
+    options: { clock: '300+0' },
+    hostId: null,
+    seats: [],
+    spectators: [],
+    phase: 'playing',
+    state: { clock: { base: 300000, inc: 0, remaining: [300000, 300000], turnStart: 1000 } },
+    version: 3,
+    result: null,
+    lastResult: null,
+    rematch: [],
+    chat: [],
+    chatSeq: 0,
+    gameNo: 1,
+    createdAt: 0,
+    lastActive: 0,
+  };
+  const room = Room.fromJSON({}, saved, 60000);
+  assert.equal(room.state.clock.turnStart, 61000);
+  assert.throws(() => Room.fromJSON({}, { ...saved, gameId: 'nope' }), /unknown game/);
+});
